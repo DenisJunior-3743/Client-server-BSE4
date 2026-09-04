@@ -1,0 +1,147 @@
+@startuml erd
+title Bank Loan Application System - Entity Relationship Diagram (PostgreSQL)
+
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+hide circle
+skinparam class {
+  BackgroundColor #EAF2FB
+  BorderColor #2E5C8A
+  FontSize 12
+  AttributeFontSize 11
+}
+
+entity "users" as users {
+  * id : UUID <<PK>>
+  --
+  * email : VARCHAR <<unique>>
+  * password_hash : VARCHAR
+  * role : ENUM(BORROWER, LOAN_OFFICER,\n  CREDIT_ANALYST, BRANCH_MANAGER, ADMIN)
+  full_name : VARCHAR
+  phone : VARCHAR
+  created_at : TIMESTAMP
+}
+
+entity "applicant_profiles" as profile {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  national_id : VARCHAR
+  date_of_birth : DATE
+  employment_info : JSONB
+  income_monthly : NUMERIC
+  address : JSONB
+}
+
+entity "loan_applications" as loan {
+  * id : UUID <<PK>>
+  --
+  * applicant_id : UUID <<FK>>
+  product_type : VARCHAR
+  amount_requested : NUMERIC
+  term_months : INT
+  purpose : VARCHAR
+  status : VARCHAR
+  metadata : JSONB
+  submitted_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "documents" as docs {
+  * id : UUID <<PK>>
+  --
+  * loan_application_id : UUID <<FK>>
+  doc_type : VARCHAR
+  file_url : VARCHAR
+  verification_status : VARCHAR
+  uploaded_at : TIMESTAMP
+}
+
+entity "credit_checks" as credit {
+  * id : UUID <<PK>>
+  --
+  * loan_application_id : UUID <<FK>>
+  bureau_reference : VARCHAR
+  score : INT
+  result : VARCHAR
+  raw_response : JSONB
+  checked_at : TIMESTAMP
+}
+
+entity "approvals" as approval {
+  * id : UUID <<PK>>
+  --
+  * loan_application_id : UUID <<FK>>
+  * decided_by : UUID <<FK users.id>>
+  decision : VARCHAR
+  comments : VARCHAR
+  decided_at : TIMESTAMP
+}
+
+entity "disbursements" as disburse {
+  * id : UUID <<PK>>
+  --
+  * loan_application_id : UUID <<FK>>
+  amount : NUMERIC
+  method : VARCHAR
+  status : VARCHAR
+  disbursed_at : TIMESTAMP
+}
+
+entity "repayment_schedules" as schedule {
+  * id : UUID <<PK>>
+  --
+  * loan_application_id : UUID <<FK>>
+  due_date : DATE
+  amount_due : NUMERIC
+  amount_paid : NUMERIC
+  status : VARCHAR
+}
+
+entity "repayments" as repay {
+  * id : UUID <<PK>>
+  --
+  * schedule_id : UUID <<FK>>
+  paid_at : TIMESTAMP
+  amount : NUMERIC
+  method : VARCHAR
+}
+
+entity "notifications" as notif {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  loan_application_id : UUID <<FK>>
+  channel : VARCHAR
+  message : VARCHAR
+  sent_at : TIMESTAMP
+  read_at : TIMESTAMP
+}
+
+entity "audit_logs" as audit {
+  * id : UUID <<PK>>
+  --
+  entity_type : VARCHAR
+  entity_id : UUID
+  action : VARCHAR
+  performed_by : UUID <<FK users.id>>
+  performed_at : TIMESTAMP
+  details : JSONB
+}
+
+users ||--o| profile : has
+users ||--o{ loan : submits
+users ||--o{ approval : decides
+users ||--o{ notif : receives
+users ||--o{ audit : performs
+
+loan ||--o{ docs : includes
+loan ||--o{ credit : has
+loan ||--o{ approval : receives
+loan ||--o{ disburse : results_in
+loan ||--o{ schedule : generates
+loan ||--o{ notif : triggers
+
+schedule ||--o{ repay : recorded_as
+
+@enduml

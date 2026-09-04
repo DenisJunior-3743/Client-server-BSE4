@@ -1,0 +1,66 @@
+@startuml sequence-loan-application
+title Core Flow - Loan Submission to Disbursement
+
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam ArrowColor #37474F
+skinparam actorBorderColor #2E5C8A
+skinparam participantBackgroundColor #EAF2FB
+skinparam participantBorderColor #2E5C8A
+skinparam databaseBackgroundColor #FDF2E3
+skinparam queueBackgroundColor #EDE7F6
+
+actor "Borrower\n(Kotlin app)" as borrower
+participant "Loan Application\nController" as ctrl
+participant "Loan Application\nService" as appSvc
+database "PostgreSQL" as db
+queue "RabbitMQ" as mq
+participant "Credit Check\nWorker" as worker
+participant "Notification\nService" as notify
+participant "WebSocket\nEndpoint" as ws
+actor "Loan Officer\n(web dashboard)" as officer
+
+borrower -> ctrl : POST /api/loans (application + docs)
+ctrl -> appSvc : submitApplication(dto)
+appSvc -> db : INSERT loan_application (status=SUBMITTED)
+appSvc -> mq : publish LoanSubmitted
+appSvc --> ctrl : 201 Created
+ctrl --> borrower : applicationId, status=SUBMITTED
+
+mq -> worker : consume LoanSubmitted
+worker -> worker : verify documents
+worker -> db : UPDATE status=CREDIT_CHECK_PENDING
+worker -> worker : call Credit Bureau API (stub)
+worker -> db : INSERT credit_check result
+worker -> mq : publish CreditCheckCompleted
+
+mq -> notify : consume CreditCheckCompleted
+notify -> ws : push status update
+ws --> borrower : WSS: status = CREDIT_CHECK_PASSED
+ws --> officer : WSS: new item in review queue
+
+officer -> ctrl : GET /api/loans/{id}
+ctrl -> appSvc : getApplication(id)
+appSvc -> db : SELECT loan_application + credit_check
+appSvc --> ctrl : application detail
+ctrl --> officer : render in dashboard
+
+officer -> ctrl : POST /api/loans/{id}/decision (APPROVE)
+ctrl -> appSvc : recordDecision(id, APPROVE)
+appSvc -> db : UPDATE status=APPROVED
+appSvc -> mq : publish DecisionMade
+
+mq -> notify : consume DecisionMade
+notify -> ws : push status update
+ws --> borrower : WSS: status = APPROVED
+
+appSvc -> db : INSERT disbursement (status=PENDING)
+appSvc -> mq : publish DisbursementScheduled
+mq -> worker : consume DisbursementScheduled
+worker -> db : UPDATE status=DISBURSED
+worker -> mq : publish DisbursementCompleted
+mq -> notify : consume DisbursementCompleted
+notify -> ws : push status update
+ws --> borrower : WSS: status = DISBURSED / repayment schedule active
+
+@enduml

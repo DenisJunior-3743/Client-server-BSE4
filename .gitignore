@@ -1,0 +1,13 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Office lock files
+~$*.docx
+~$*.pptx
+~$*.xlsx
+
+# Local tool/session state (not part of the project)
+.claude/
+.vscode/
+.idea/
