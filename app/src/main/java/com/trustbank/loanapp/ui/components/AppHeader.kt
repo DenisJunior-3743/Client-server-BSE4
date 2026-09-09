@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,16 +29,18 @@ import androidx.compose.ui.unit.dp
 import com.trustbank.loanapp.ui.theme.AppColors
 
 /**
- * The chrome shared by every main-tab screen: brand logo top-left, and
- * notifications + profile access top-right — replacing what used to be a
- * bottom-nav "Profile" tab and a per-screen notification bell, so every
- * screen reads the same way instead of each owning its own ad-hoc header.
+ * The chrome shared by every main-tab screen: a menu button + brand logo
+ * top-left, notifications + profile access top-right — replacing what used
+ * to be a bottom-nav "Profile" tab and a per-screen notification bell, so
+ * every screen reads the same way instead of each owning its own ad-hoc
+ * header.
  */
 @Composable
 fun AppHeader(
     userName: String,
     avatarColor: Color,
     unreadNotifications: Int,
+    onMenuClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -47,15 +50,18 @@ fun AppHeader(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(AppColors.Primary600)
             .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(start = 4.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onMenuClick) {
+                Icon(Icons.Filled.Menu, contentDescription = "Menu", tint = Color.White)
+            }
             Box(
                 modifier = Modifier
                     .size(34.dp)
-                    .background(AppColors.Primary600, RoundedCornerShape(10.dp)),
+                    .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -66,20 +72,20 @@ fun AppHeader(
                 )
             }
             Spacer(Modifier.width(10.dp))
-            Text("TrustBank", style = MaterialTheme.typography.titleLarge, color = AppColors.Neutral900)
+            Text("TrustBank", style = MaterialTheme.typography.titleLarge, color = Color.White)
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box {
                 IconButton(onClick = onNotificationsClick) {
-                    Icon(Icons.Filled.NotificationsNone, contentDescription = "Notifications", tint = AppColors.Neutral700)
+                    Icon(Icons.Filled.NotificationsNone, contentDescription = "Notifications", tint = Color.White)
                 }
                 if (unreadNotifications > 0) {
                     Box(
                         modifier = Modifier
                             .size(9.dp)
                             .align(Alignment.TopEnd)
-                            .background(AppColors.Danger500, CircleShape),
+                            .background(AppColors.Gold500, CircleShape),
                     )
                 }
             }

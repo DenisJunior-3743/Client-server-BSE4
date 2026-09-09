@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.trustbank.loanapp.data.AppContainer
 import com.trustbank.loanapp.data.mock.MockData
 import com.trustbank.loanapp.data.model.LoanStatus
 import com.trustbank.loanapp.ui.common.documentTypeLabel
@@ -47,6 +48,7 @@ fun ApplicationDetailScreen(
     SetStatusBarAppearance(darkIcons = true)
 
     val uiState by viewModel.uiState.collectAsState()
+    val amountsVisible by AppContainer.visibility.amountsVisible.collectAsState()
     val response = rememberFieldState {
         if (it.trim().length < 10) "Describe your response (at least 10 characters)" else null
     }
@@ -85,9 +87,9 @@ fun ApplicationDetailScreen(
         }
 
         SectionCard(title = "Loan Details") {
-            DetailRow("Amount requested", Formatters.ugx(application.amountRequested))
+            DetailRow("Amount requested", Formatters.maskedUgx(application.amountRequested, amountsVisible))
             if (application.amountApproved != null) {
-                DetailRow("Amount approved", Formatters.ugx(application.amountApproved))
+                DetailRow("Amount approved", Formatters.maskedUgx(application.amountApproved, amountsVisible))
             }
             DetailRow("Term", "${application.termMonths} months")
             if (application.paymentTerms != null) {

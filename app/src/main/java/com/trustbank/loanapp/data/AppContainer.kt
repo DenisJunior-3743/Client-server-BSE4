@@ -31,10 +31,22 @@ class SessionManager {
     }
 }
 
+/** Global "hide sensitive amounts" toggle (loan amounts, income) — an in-memory-only
+ * preference, consistent with the rest of the app not persisting state across launches. */
+class VisibilitySettings {
+    private val _amountsVisible = MutableStateFlow(true)
+    val amountsVisible: StateFlow<Boolean> = _amountsVisible
+
+    fun setVisible(value: Boolean) {
+        _amountsVisible.value = value
+    }
+}
+
 // Simple hand-rolled service locator — this is a small, single-module app so
 // a full DI framework (Hilt) would be overhead the coursework doesn't need.
 object AppContainer {
     val session = SessionManager()
+    val visibility = VisibilitySettings()
     val authRepository: AuthRepository = FakeAuthRepository()
     val applicationRepository: ApplicationRepository = FakeApplicationRepository()
     val productRepository: ProductRepository = FakeProductRepository()

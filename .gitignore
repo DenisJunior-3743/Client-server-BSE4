@@ -12,5 +12,11 @@ local.properties
 *.apk
 *.aab
 
+# Release signing material — never commit a keystore or its passwords.
+# Back this up somewhere safe outside git (integration.md: the same key
+# must be reused for every future release, or updates break for everyone
+# who already installed the app).
+/keystore/
+
 hs_err_pid*.log
 replay_pid*.log

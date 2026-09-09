@@ -80,13 +80,16 @@ fun OnboardingScreen(onFinished: () -> Unit) {
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == ONBOARDING_PAGES.lastIndex
 
-    // Auto-advance like a slideshow — restarts on every page change, so a
-    // manual swipe/tap also resets the 5s window, and it simply stops
-    // once the last page is reached (no wrap-around).
-    LaunchedEffect(pagerState.currentPage) {
-        delay(5000)
-        if (pagerState.currentPage < ONBOARDING_PAGES.lastIndex) {
-            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+    // Auto-advance like a slideshow: a single loop that ticks on a fixed 5s
+    // cadence for as long as this screen is on screen, wrapping back to the
+    // first page after the last — keyed on Unit (not on the current page) so
+    // there's no dependency on a restart being triggered correctly on every
+    // page change; it just keeps advancing regardless of what page it's on.
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5000)
+            val nextPage = (pagerState.currentPage + 1) % ONBOARDING_PAGES.size
+            pagerState.animateScrollToPage(nextPage)
         }
     }
 

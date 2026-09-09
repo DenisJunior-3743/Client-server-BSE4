@@ -105,6 +105,8 @@ fun ProfileScreen(
 
 @Composable
 private fun ProfileView(profile: ApplicantProfile, savedMessage: String?, onEdit: () -> Unit) {
+    val amountsVisible by AppContainer.visibility.amountsVisible.collectAsState()
+
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (savedMessage != null) {
             Text(savedMessage, color = AppColors.Success600, style = MaterialTheme.typography.bodySmall)
@@ -115,7 +117,7 @@ private fun ProfileView(profile: ApplicantProfile, savedMessage: String?, onEdit
             DetailRow("Employer", profile.employer)
             DetailRow("Job title", profile.jobTitle)
             DetailRow("Employment type", employmentTypeLabel(profile.employmentType))
-            DetailRow("Monthly income", Formatters.ugx(profile.incomeMonthly))
+            DetailRow("Monthly income", Formatters.maskedUgx(profile.incomeMonthly, amountsVisible))
             DetailRow("District", profile.district)
             DetailRow("Address", profile.address)
         }
