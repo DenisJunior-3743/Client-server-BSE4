@@ -36,6 +36,7 @@ import com.trustbank.loanapp.ui.common.rememberFieldState
 import com.trustbank.loanapp.ui.components.AppDropdownField
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.AvatarInitials
+import com.trustbank.loanapp.ui.components.DateField
 import com.trustbank.loanapp.ui.components.DetailRow
 import com.trustbank.loanapp.ui.components.DigitsField
 import com.trustbank.loanapp.ui.components.LoadingIndicator
@@ -194,14 +195,12 @@ private fun ProfileEditForm(
             required = true,
             error = nationalId.error,
         )
-        AppTextField(
+        DateField(
             label = "Date of birth",
             value = dateOfBirthText.value,
             onValueChange = dateOfBirthText::onValueChange,
-            onFocusLost = dateOfBirthText::onFocusLost,
             required = true,
             error = dateOfBirthText.error,
-            placeholder = "YYYY-MM-DD",
         )
         AppTextField(
             label = "Employer",

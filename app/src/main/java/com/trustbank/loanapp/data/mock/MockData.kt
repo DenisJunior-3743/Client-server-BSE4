@@ -19,8 +19,6 @@ import java.time.LocalDateTime
 // Retrofit-backed repository without touching the UI layer.
 object MockData {
 
-    const val DEMO_PASSWORD = "Passw0rd1"
-
     val currentUser = User(
         id = "borrower-01",
         fullName = "Allan Tumusiime",

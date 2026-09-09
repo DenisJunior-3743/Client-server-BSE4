@@ -13,10 +13,7 @@ Kotlin + Jetpack Compose applicant app for the Bank Loan Application System. Cov
 
 ## Demo login
 
-- Email: `allan.tumusiime@mail.com`
-- Password: `Passw0rd1`
-
-Registering a new account also works — it just signs you in as the same demo applicant (no persistence yet).
+There's no backend/account database yet, so login accepts **any** syntactically valid email + any non-empty password — it just signs you in as the same demo applicant (Allan Tumusiime), using whatever email you typed. Registering a new account works the same way (no persistence yet).
 
 ## What's implemented
 

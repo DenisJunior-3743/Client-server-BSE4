@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +35,7 @@ import com.trustbank.loanapp.ui.common.rememberFieldState
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.PasswordField
 import com.trustbank.loanapp.ui.components.PrimaryButton
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Validators
 
@@ -43,6 +45,8 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     viewModel: AuthViewModel = viewModel(),
 ) {
+    SetStatusBarAppearance(darkIcons = false)
+
     val uiState by viewModel.uiState.collectAsState()
 
     val email = rememberFieldState {
@@ -73,7 +77,8 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AppColors.Primary600)
-                .padding(top = 56.dp, bottom = 32.dp),
+                .statusBarsPadding()
+                .padding(top = 24.dp, bottom = 32.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -116,6 +121,7 @@ fun LoginScreen(
                 onFocusLost = password::onFocusLost,
                 required = true,
                 error = password.error,
+                showStrengthMeter = true,
             )
 
             if (uiState.error != null) {

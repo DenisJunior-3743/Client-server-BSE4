@@ -21,11 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.trustbank.loanapp.data.AppContainer
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.theme.AppColors
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(onNavigate: (isLoggedIn: Boolean) -> Unit) {
+    SetStatusBarAppearance(darkIcons = false)
+
     LaunchedEffect(Unit) {
         delay(700)
         onNavigate(AppContainer.session.currentUser.value != null)

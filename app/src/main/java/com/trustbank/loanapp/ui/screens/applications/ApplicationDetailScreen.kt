@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trustbank.loanapp.data.mock.MockData
 import com.trustbank.loanapp.data.model.LoanStatus
 import com.trustbank.loanapp.ui.common.documentTypeLabel
+import com.trustbank.loanapp.ui.common.paymentTermsLabel
 import com.trustbank.loanapp.ui.common.rememberFieldState
 import com.trustbank.loanapp.ui.common.statusMeta
 import com.trustbank.loanapp.ui.common.toTone
@@ -31,6 +33,7 @@ import com.trustbank.loanapp.ui.components.DetailRow
 import com.trustbank.loanapp.ui.components.LoadingIndicator
 import com.trustbank.loanapp.ui.components.PrimaryButton
 import com.trustbank.loanapp.ui.components.SectionCard
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.components.StatusChip
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Formatters
@@ -41,6 +44,8 @@ fun ApplicationDetailScreen(
     onBack: () -> Unit,
     viewModel: ApplicationDetailViewModel = viewModel(),
 ) {
+    SetStatusBarAppearance(darkIcons = true)
+
     val uiState by viewModel.uiState.collectAsState()
     val response = rememberFieldState {
         if (it.trim().length < 10) "Describe your response (at least 10 characters)" else null
@@ -51,6 +56,7 @@ fun ApplicationDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -84,9 +90,31 @@ fun ApplicationDetailScreen(
                 DetailRow("Amount approved", Formatters.ugx(application.amountApproved))
             }
             DetailRow("Term", "${application.termMonths} months")
+            if (application.paymentTerms != null) {
+                DetailRow("Terms of payment", paymentTermsLabel(application.paymentTerms))
+            }
             DetailRow("Purpose", application.purpose)
             DetailRow("Submitted", Formatters.dateTime(application.submittedAt))
             DetailRow("Last updated", Formatters.dateTime(application.updatedAt))
+        }
+
+        if (application.businessName != null) {
+            SectionCard(title = "Business & Collateral") {
+                DetailRow("Applicant", application.applicantFullName ?: "—")
+                DetailRow("NIN", application.applicantNin ?: "—")
+                DetailRow("Physical location", application.physicalLocation ?: "—")
+                DetailRow("Business name", application.businessName)
+                DetailRow("Business location", application.businessLocation ?: "—")
+                DetailRow("Collateral security", application.collateralSecurity ?: "—")
+            }
+        }
+
+        if (application.witnesses.isNotEmpty()) {
+            SectionCard(title = "Witnesses") {
+                application.witnesses.forEachIndexed { index, witness ->
+                    DetailRow("Witness ${index + 1}", "${witness.name} · ${witness.contact}")
+                }
+            }
         }
 
         if (uiState.documents.isNotEmpty()) {

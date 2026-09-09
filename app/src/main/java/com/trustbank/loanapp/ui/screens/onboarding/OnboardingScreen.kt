@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.trustbank.loanapp.ui.components.PrimaryButton
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.theme.AppColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private data class OnboardingPage(
@@ -70,14 +74,27 @@ private val ONBOARDING_PAGES = listOf(
 
 @Composable
 fun OnboardingScreen(onFinished: () -> Unit) {
+    SetStatusBarAppearance(darkIcons = true)
+
     val pagerState = rememberPagerState(pageCount = { ONBOARDING_PAGES.size })
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == ONBOARDING_PAGES.lastIndex
 
+    // Auto-advance like a slideshow — restarts on every page change, so a
+    // manual swipe/tap also resets the 5s window, and it simply stops
+    // once the last page is reached (no wrap-around).
+    LaunchedEffect(pagerState.currentPage) {
+        delay(5000)
+        if (pagerState.currentPage < ONBOARDING_PAGES.lastIndex) {
+            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.Neutral50),
+            .background(AppColors.Neutral50)
+            .statusBarsPadding(),
     ) {
         Row(
             horizontalArrangement = Arrangement.End,

@@ -23,6 +23,8 @@ enum class DocumentType { NATIONAL_ID, PAYSLIP, BANK_STATEMENT, COLLATERAL_PROOF
 
 enum class DocumentVerificationStatus { PENDING, VERIFIED, REJECTED }
 
+enum class PaymentTerms { MONTHLY, WEEKLY, QUARTERLY, LUMP_SUM }
+
 data class User(
     val id: String,
     val fullName: String,
@@ -54,6 +56,11 @@ data class LoanProduct(
     val maxTermMonths: Int,
 )
 
+data class Witness(
+    val name: String,
+    val contact: String,
+)
+
 data class LoanDocument(
     val id: String,
     val loanApplicationId: String,
@@ -75,6 +82,16 @@ data class LoanApplication(
     val updatedAt: LocalDateTime,
     val decisionRemarks: String? = null,
     val infoRequestMessage: String? = null,
+    // Captured on the multi-phase application form (§ physical/business/collateral details).
+    val applicantFullName: String? = null,
+    val applicantDob: LocalDate? = null,
+    val applicantNin: String? = null,
+    val physicalLocation: String? = null,
+    val businessName: String? = null,
+    val businessLocation: String? = null,
+    val collateralSecurity: String? = null,
+    val witnesses: List<Witness> = emptyList(),
+    val paymentTerms: PaymentTerms? = null,
 )
 
 data class AppNotification(

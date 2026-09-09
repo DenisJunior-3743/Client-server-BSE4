@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +31,7 @@ import com.trustbank.loanapp.ui.components.NameField
 import com.trustbank.loanapp.ui.components.PasswordField
 import com.trustbank.loanapp.ui.components.PhoneField
 import com.trustbank.loanapp.ui.components.PrimaryButton
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Validators
 
@@ -39,6 +41,8 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     viewModel: AuthViewModel = viewModel(),
 ) {
+    SetStatusBarAppearance(darkIcons = false)
+
     val uiState by viewModel.uiState.collectAsState()
 
     val fullName = rememberFieldState {
@@ -94,7 +98,8 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(AppColors.Primary600)
-                .padding(top = 56.dp, bottom = 32.dp, start = 24.dp, end = 24.dp),
+                .statusBarsPadding()
+                .padding(top = 24.dp, bottom = 32.dp, start = 24.dp, end = 24.dp),
         ) {
             Text("Create your account", style = MaterialTheme.typography.headlineSmall, color = Color.White)
             Text(

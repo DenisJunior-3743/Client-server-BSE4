@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,7 @@ import com.trustbank.loanapp.data.model.AppNotification
 import com.trustbank.loanapp.ui.components.BackRow
 import com.trustbank.loanapp.ui.components.EmptyState
 import com.trustbank.loanapp.ui.components.LoadingIndicator
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Formatters
 
@@ -39,11 +41,14 @@ fun NotificationsScreen(
     onBack: () -> Unit,
     viewModel: NotificationsViewModel = viewModel(),
 ) {
+    SetStatusBarAppearance(darkIcons = true)
+
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {

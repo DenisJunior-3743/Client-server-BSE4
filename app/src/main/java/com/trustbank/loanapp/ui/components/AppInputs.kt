@@ -20,13 +20,17 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -35,6 +39,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,6 +59,10 @@ import androidx.compose.ui.unit.dp
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Validators
 import kotlinx.coroutines.delay
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeParseException
 
 /**
  * A transient "you just typed something invalid" hint: call the returned
@@ -413,6 +423,88 @@ fun NationalIdField(
         onFocusLost = onFocusLost,
     )
 }
+
+/**
+ * Date-of-birth-style input backed by a native Material3 date picker dialog
+ * instead of free typing — tap anywhere on the field to open it. `value`/
+ * `onValueChange` stay plain `YYYY-MM-DD` strings so this drops straight
+ * into the existing FieldState validators (format/adult checks etc.)
+ * unchanged; the picker is just a different way of producing that string.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    required: Boolean = true,
+    error: String? = null,
+    placeholder: String = "Select date",
+) {
+    var showPicker by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(if (required) "$label *" else label) },
+                placeholder = { Text(placeholder) },
+                isError = error != null,
+                trailingIcon = { Icon(Icons.Filled.DateRange, contentDescription = null, tint = AppColors.Neutral500) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppColors.Primary600,
+                    errorBorderColor = AppColors.Danger600,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable { showPicker = true },
+            )
+        }
+        if (error != null) {
+            Text(
+                text = error,
+                color = AppColors.Danger600,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+            )
+        }
+    }
+
+    if (showPicker) {
+        val initialMillis = value.toLocalDateOrNull()?.toUtcMillis() ?: LocalDate.now().minusYears(18).toUtcMillis()
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis -> onValueChange(millis.toLocalDate().toString()) }
+                    showPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+}
+
+private fun String.toLocalDateOrNull(): LocalDate? = try {
+    LocalDate.parse(this)
+} catch (e: DateTimeParseException) {
+    null
+}
+
+private fun LocalDate.toUtcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+private fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 /**
  * A simple, version-safe dropdown: a read-only OutlinedTextField with a
