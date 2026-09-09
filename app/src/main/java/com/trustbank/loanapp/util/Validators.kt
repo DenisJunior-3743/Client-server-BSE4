@@ -25,8 +25,14 @@ object Validators {
 
     fun isRequired(value: String): Boolean = value.trim().isNotEmpty()
 
+    const val PASSWORD_ERROR_MESSAGE = "Use 8+ characters with upper & lower case, a number, and a symbol (e.g. @, #, !)"
+
     fun isStrongPassword(value: String): Boolean =
-        value.length >= 8 && value.any { it.isDigit() } && value.any { it.isUpperCase() } && value.any { it.isLowerCase() }
+        value.length >= 8 &&
+            value.any { it.isDigit() } &&
+            value.any { it.isUpperCase() } &&
+            value.any { it.isLowerCase() } &&
+            value.any { !it.isLetterOrDigit() }
 
     /**
      * 0-100 score across five criteria (length, lowercase, uppercase, digit,
@@ -58,10 +64,45 @@ object Validators {
 
     fun sanitizeDigitsOnly(raw: String, maxLength: Int): String = raw.filter { it.isDigit() }.take(maxLength)
 
+    /**
+     * Filters [raw] down to characters [isAllowed] accepts (capped at
+     * [maxLength] when given), and — unlike a plain filter — also names the
+     * specific character(s) rejected on *this* keystroke, e.g. `"3" is not
+     * allowed — letters and spaces only`, so a field can show that feedback
+     * immediately instead of just silently dropping the input.
+     */
+    fun sanitizeWithFeedback(
+        raw: String,
+        maxLength: Int? = null,
+        allowedDescription: String,
+        isAllowed: (Char) -> Boolean,
+    ): Pair<String, String?> {
+        val rejected = raw.filterNot(isAllowed).toSet()
+        var sanitized = raw.filter(isAllowed)
+        val truncated = maxLength != null && sanitized.length > maxLength
+        if (maxLength != null) sanitized = sanitized.take(maxLength)
+        val message = when {
+            rejected.isNotEmpty() -> {
+                val shown = rejected.joinToString(" ") { "\"$it\"" }
+                "$shown ${if (rejected.size == 1) "is" else "are"} not allowed — $allowedDescription"
+            }
+            truncated -> "Maximum $maxLength characters"
+            else -> null
+        }
+        return sanitized to message
+    }
+
     private val NON_NAME_CHAR = Regex("[^A-Za-z ]")
+    const val NAME_ALLOWED_DESCRIPTION = "letters and spaces only"
 
     /** Strips digits/symbols as the user types — a full name is letters and spaces only. */
     fun sanitizeNameInput(raw: String): String = raw.replace(NON_NAME_CHAR, "")
 
     fun isValidFullName(value: String): Boolean = value.trim().length >= 2
+
+    const val NATIONAL_ID_LENGTH = 14
+    const val NATIONAL_ID_ALLOWED_DESCRIPTION = "letters and numbers only"
+    const val NATIONAL_ID_ERROR_MESSAGE = "National ID must be $NATIONAL_ID_LENGTH characters"
+
+    fun isValidNationalId(value: String): Boolean = value.trim().length == NATIONAL_ID_LENGTH
 }

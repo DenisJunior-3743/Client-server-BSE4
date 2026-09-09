@@ -20,19 +20,24 @@ Registering a new account also works — it just signs you in as the same demo a
 
 ## What's implemented
 
-- Splash → Login/Register → bottom-tab shell (Home, Products, Applications, Profile)
+- Splash → Onboarding (3 skippable "about the bank" pages, shown whenever a logged-out user cold-starts the app) → Login/Register → bottom-tab shell (Home, Products, Applications, Profile)
 - Product list/detail → 3-step new application flow (loan details → documents → review & submit), each step validated before you can continue
 - Application list + detail with a document checklist and a respond-to-info-request form
 - KYC profile view/edit and account settings, both with the same validation rules as the web dashboard
-- Client-side validation throughout: required fields, email format, Uganda phone format (see below), password strength, DOB age check (18+), amount/term bounds against the selected product
+- Client-side validation throughout: required fields, email format, Uganda phone format (see below), full name/District (letters only), National ID (14-char alphanumeric), loan amount/term/income (digits only), password strength, DOB age check (18+), amount/term bounds against the selected product
+- Every character-restricted field (name, phone, digits, National ID) shows a live, specific hint the instant an invalid keystroke is rejected — e.g. typing `D3nis` flashes `"3" is not allowed — letters and spaces only` — instead of just silently dropping it
 
 ## Uganda phone number rule
 
-`PhoneField` (`ui/components/AppInputs.kt`) and `Validators.sanitizePhoneInput` (`util/Validators.kt`) strip every non-digit character and cap the result at 10 characters **inside `onValueChange`** — so a letter or symbol never appears in the field, and typing an 11th digit is simply ignored. Final format required: `07XXXXXXXX`. This mirrors `web/src/components/ui/PhoneField.tsx` and `web/src/lib/phone.ts` exactly.
+`PhoneField` (`ui/components/AppInputs.kt`) and `Validators.sanitizePhoneInput` (`util/Validators.kt`) strip every non-digit character and cap the result at 10 characters **inside `onValueChange`** — so a letter or symbol never appears in the field, and typing an 11th digit is simply ignored. Final format required: `07XXXXXXXX`. This mirrors `web/src/components/ui/PhoneField.tsx` and `web/src/lib/phone.ts` exactly. The same live-sanitize-with-a-hint pattern (`Validators.sanitizeWithFeedback`) now also backs `NameField` (letters/spaces), `DigitsField` (loan amount/term/income), and `NationalIdField` (uppercase alphanumeric, 14 chars).
+
+## Password policy
+
+`Validators.isStrongPassword` requires 8+ characters with upper case, lower case, a digit, and a symbol. While registering, `PasswordStrengthMeter` shows a color-coded progress bar plus a live checklist of which of those five criteria (length, upper, lower, digit, symbol) are currently met, so the user sees exactly what's missing instead of only a pass/fail message on submit. `PasswordField` also has a show/hide visibility toggle.
 
 ## Design system
 
-Colors in `ui/theme/Color.kt` are the same hex values as the web dashboard's `web/src/index.css` tokens — kept in sync by hand since the two clients don't share a build step. If you change one palette, update the other.
+Colors in `ui/theme/Color.kt` are a Ugandan-bank-inspired palette (navy blue primary + gold accent, pulled from Centenary Bank's public site) and are **deliberately no longer synced** with the web dashboard's `web/src/index.css` tokens — this was a one-off mobile reskin, not a shared-token update. If the web app gets the same treatment later, update it separately.
 
 ## Known limitations (by design, for Task 1)
 

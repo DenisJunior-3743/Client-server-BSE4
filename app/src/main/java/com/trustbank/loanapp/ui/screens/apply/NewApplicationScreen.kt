@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trustbank.loanapp.data.model.DocumentType
@@ -35,6 +34,7 @@ import com.trustbank.loanapp.ui.common.documentTypeLabel
 import com.trustbank.loanapp.ui.common.rememberFieldState
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.BackRow
+import com.trustbank.loanapp.ui.components.DigitsField
 import com.trustbank.loanapp.ui.components.DetailRow
 import com.trustbank.loanapp.ui.components.LoadingIndicator
 import com.trustbank.loanapp.ui.components.PrimaryButton
@@ -184,7 +184,7 @@ private fun StepOne(
             DetailRow("Term range", "${product.minTermMonths}–${product.maxTermMonths} months")
         }
 
-        AppTextField(
+        DigitsField(
             label = "Amount requested (UGX)",
             value = amount.value,
             onValueChange = amount::onValueChange,
@@ -192,9 +192,8 @@ private fun StepOne(
             required = true,
             error = amount.error,
             placeholder = "e.g. 2000000",
-            keyboardType = KeyboardType.Number,
         )
-        AppTextField(
+        DigitsField(
             label = "Repayment term (months)",
             value = term.value,
             onValueChange = term::onValueChange,
@@ -202,7 +201,7 @@ private fun StepOne(
             required = true,
             error = term.error,
             placeholder = "e.g. 12",
-            keyboardType = KeyboardType.Number,
+            maxLength = 3,
         )
         AppTextField(
             label = "Purpose of loan",

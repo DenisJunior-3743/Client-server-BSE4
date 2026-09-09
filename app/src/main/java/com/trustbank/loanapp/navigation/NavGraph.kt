@@ -13,6 +13,7 @@ import com.trustbank.loanapp.ui.screens.auth.LoginScreen
 import com.trustbank.loanapp.ui.screens.auth.RegisterScreen
 import com.trustbank.loanapp.ui.screens.main.MainScreen
 import com.trustbank.loanapp.ui.screens.notifications.NotificationsScreen
+import com.trustbank.loanapp.ui.screens.onboarding.OnboardingScreen
 import com.trustbank.loanapp.ui.screens.products.ProductDetailScreen
 import com.trustbank.loanapp.ui.screens.settings.SettingsScreen
 import com.trustbank.loanapp.ui.screens.splash.SplashScreen
@@ -23,9 +24,19 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         composable(Routes.SPLASH) {
             SplashScreen(
                 onNavigate = { isLoggedIn ->
-                    val destination = if (isLoggedIn) Routes.MAIN else Routes.LOGIN
+                    val destination = if (isLoggedIn) Routes.MAIN else Routes.ONBOARDING
                     navController.navigate(destination) {
                         popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(Routes.ONBOARDING) {
+            OnboardingScreen(
+                onFinished = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
                     }
                 },
             )

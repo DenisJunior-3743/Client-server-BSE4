@@ -66,66 +66,81 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.Neutral50)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 40.dp),
+            .verticalScroll(rememberScrollState()),
     ) {
-        Box(
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .size(56.dp)
-                .background(AppColors.Primary600, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .background(AppColors.Primary600)
+                .padding(top = 56.dp, bottom = 32.dp),
         ) {
-            Icon(Icons.Filled.AccountBalance, contentDescription = null, tint = Color.White)
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Text("TrustBank", style = MaterialTheme.typography.headlineMedium, color = AppColors.Neutral900)
-        Text("Welcome back. Sign in to continue.", style = MaterialTheme.typography.bodyMedium, color = AppColors.Neutral500)
-
-        Spacer(Modifier.height(28.dp))
-
-        AppTextField(
-            label = "Email address",
-            value = email.value,
-            onValueChange = email::onValueChange,
-            onFocusLost = email::onFocusLost,
-            required = true,
-            error = email.error,
-            placeholder = "you@mail.com",
-            keyboardType = KeyboardType.Email,
-        )
-        Spacer(Modifier.height(14.dp))
-        PasswordField(
-            label = "Password",
-            value = password.value,
-            onValueChange = password::onValueChange,
-            onFocusLost = password::onFocusLost,
-            required = true,
-            error = password.error,
-        )
-
-        if (uiState.error != null) {
-            Spacer(Modifier.height(12.dp))
-            Text(uiState.error ?: "", color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
-        }
-
-        Spacer(Modifier.height(20.dp))
-        PrimaryButton(
-            text = "Sign in",
-            isLoading = uiState.isLoading,
-            onClick = ::submit,
-        )
-
-        Spacer(Modifier.height(18.dp))
-        Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-            Text("Don't have an account? ", color = AppColors.Neutral500, style = MaterialTheme.typography.bodyMedium)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.AccountBalance, contentDescription = null, tint = Color.White)
+            }
+            Spacer(Modifier.height(16.dp))
+            Text("TrustBank", style = MaterialTheme.typography.headlineMedium, color = Color.White)
             Text(
-                "Register",
-                color = AppColors.Primary600,
-                fontWeight = FontWeight.SemiBold,
+                "Welcome back. Sign in to continue.",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.clickable(onClick = onNavigateToRegister),
+                color = Color.White.copy(alpha = 0.85f),
             )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+        ) {
+            AppTextField(
+                label = "Email address",
+                value = email.value,
+                onValueChange = email::onValueChange,
+                onFocusLost = email::onFocusLost,
+                required = true,
+                error = email.error,
+                placeholder = "you@mail.com",
+                keyboardType = KeyboardType.Email,
+            )
+            Spacer(Modifier.height(14.dp))
+            PasswordField(
+                label = "Password",
+                value = password.value,
+                onValueChange = password::onValueChange,
+                onFocusLost = password::onFocusLost,
+                required = true,
+                error = password.error,
+            )
+
+            if (uiState.error != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(uiState.error ?: "", color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
+            }
+
+            Spacer(Modifier.height(20.dp))
+            PrimaryButton(
+                text = "Sign in",
+                isLoading = uiState.isLoading,
+                onClick = ::submit,
+            )
+
+            Spacer(Modifier.height(18.dp))
+            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
+                Text("Don't have an account? ", color = AppColors.Neutral500, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Register",
+                    color = AppColors.Primary600,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.clickable(onClick = onNavigateToRegister),
+                )
+            }
         }
     }
 }

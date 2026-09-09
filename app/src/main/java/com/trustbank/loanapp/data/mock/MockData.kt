@@ -31,7 +31,7 @@ object MockData {
 
     var applicantProfile = ApplicantProfile(
         userId = currentUser.id,
-        nationalId = "CM88213445B77",
+        nationalId = "CM88213445B771",
         dateOfBirth = LocalDate.of(1994, 5, 12),
         employer = "Mbarara University",
         jobTitle = "Lecturer",

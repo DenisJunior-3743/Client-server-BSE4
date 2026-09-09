@@ -25,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trustbank.loanapp.data.AppContainer
@@ -38,7 +37,10 @@ import com.trustbank.loanapp.ui.components.AppDropdownField
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.AvatarInitials
 import com.trustbank.loanapp.ui.components.DetailRow
+import com.trustbank.loanapp.ui.components.DigitsField
 import com.trustbank.loanapp.ui.components.LoadingIndicator
+import com.trustbank.loanapp.ui.components.NameField
+import com.trustbank.loanapp.ui.components.NationalIdField
 import com.trustbank.loanapp.ui.components.PrimaryButton
 import com.trustbank.loanapp.ui.components.SecondaryButton
 import com.trustbank.loanapp.ui.components.SectionCard
@@ -127,7 +129,13 @@ private fun ProfileEditForm(
     onCancel: () -> Unit,
     onSave: (ApplicantProfile) -> Unit,
 ) {
-    val nationalId = rememberFieldState(initial.nationalId) { if (!Validators.isRequired(it)) "National ID is required" else null }
+    val nationalId = rememberFieldState(initial.nationalId) {
+        when {
+            !Validators.isRequired(it) -> "National ID is required"
+            !Validators.isValidNationalId(it) -> Validators.NATIONAL_ID_ERROR_MESSAGE
+            else -> null
+        }
+    }
     val dateOfBirthText = rememberFieldState(initial.dateOfBirth.toString()) { text ->
         if (text.isBlank()) return@rememberFieldState "Date of birth is required"
         val parsed = try {
@@ -179,8 +187,7 @@ private fun ProfileEditForm(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        AppTextField(
-            label = "National ID",
+        NationalIdField(
             value = nationalId.value,
             onValueChange = nationalId::onValueChange,
             onFocusLost = nationalId::onFocusLost,
@@ -220,16 +227,15 @@ private fun ProfileEditForm(
             onSelect = { employmentType = it },
             required = true,
         )
-        AppTextField(
+        DigitsField(
             label = "Monthly income (UGX)",
             value = incomeText.value,
-            onValueChange = { v -> incomeText.onValueChange(v.filter { c -> c.isDigit() }) },
+            onValueChange = incomeText::onValueChange,
             onFocusLost = incomeText::onFocusLost,
             required = true,
             error = incomeText.error,
-            keyboardType = KeyboardType.Number,
         )
-        AppTextField(
+        NameField(
             label = "District",
             value = district.value,
             onValueChange = district::onValueChange,

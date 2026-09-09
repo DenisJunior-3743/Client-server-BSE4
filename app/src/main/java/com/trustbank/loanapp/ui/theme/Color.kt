@@ -2,21 +2,34 @@ package com.trustbank.loanapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Same hex values as the web dashboard's design tokens (web/src/index.css).
-// Keep these two files in sync by hand — mobile has no build step that reads
-// the web app's CSS, so this is the one place the palette is repeated.
+// A Ugandan-bank-inspired palette: a deep navy blue primary (close to
+// Centenary Bank's brand blue, #0055C6) paired with a gold accent (their
+// site uses a #FFE200 highlight strip) — evokes that trust/gold identity
+// without reproducing any of their actual marks. Diverged from the web
+// dashboard's tokens (web/src/index.css) on purpose for this reskin.
 
 object AppColors {
-    val Primary50 = Color(0xFFEFF6FF)
-    val Primary100 = Color(0xFFDBEAFE)
-    val Primary200 = Color(0xFFBFDBFE)
-    val Primary300 = Color(0xFF93C5FD)
-    val Primary400 = Color(0xFF60A5FA)
-    val Primary500 = Color(0xFF3B82F6)
-    val Primary600 = Color(0xFF2563EB)
-    val Primary700 = Color(0xFF1D4ED8)
-    val Primary800 = Color(0xFF1E40AF)
-    val Primary900 = Color(0xFF1E3A8A)
+    val Primary50 = Color(0xFFEAF2FC)
+    val Primary100 = Color(0xFFD3E4F9)
+    val Primary200 = Color(0xFFA7C9F3)
+    val Primary300 = Color(0xFF79ADEC)
+    val Primary400 = Color(0xFF3D86E0)
+    val Primary500 = Color(0xFF0F66CB)
+    val Primary600 = Color(0xFF0055B8)
+    val Primary700 = Color(0xFF00448F)
+    val Primary800 = Color(0xFF033670)
+    val Primary900 = Color(0xFF052A56)
+
+    // Gold accent — the "borrowed from Centenary Bank" highlight color, used
+    // sparingly for accent bars, badges, and the strongest password state.
+    val Gold50 = Color(0xFFFFF9E5)
+    val Gold100 = Color(0xFFFFF0BF)
+    val Gold200 = Color(0xFFFFE180)
+    val Gold300 = Color(0xFFFFD24D)
+    val Gold400 = Color(0xFFFFC61A)
+    val Gold500 = Color(0xFFF2B705)
+    val Gold600 = Color(0xFFD9A200)
+    val Gold700 = Color(0xFFB38200)
 
     val Success50 = Color(0xFFECFDF5)
     val Success100 = Color(0xFFD1FAE5)
