@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose owns the actual UI theming (see ui/theme/Theme.kt); this XML
+         theme only covers the window/launch background and the manifest's
+         required android:theme reference. -->
+    <style name="Theme.TrustBankLoans" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowBackground">@color/white</item>
+    </style>
+</resources>
