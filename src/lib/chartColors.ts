@@ -4,7 +4,7 @@ import type { StatusTone } from './status'
 // consume CSS variables directly, so this is the one place they're repeated.
 export const TONE_HEX: Record<StatusTone, string> = {
   neutral: '#94a3b8',
-  primary: '#3b82f6',
+  primary: '#0f66cb',
   warning: '#f59e0b',
   success: '#10b981',
   danger: '#ef4444',
