@@ -1,7 +1,7 @@
 # Validation reference
 
-Every form field in the app is validated client-side (there's no backend yet — see
-`README.md`). This document is a map of *where* each rule lives, for explaining the
+Every form field in the app is validated client-side. In API mode the backend also validates requests.
+This document is a map of *where* each rule lives, for explaining the
 code. All paths are relative to this branch's root (`app/src/main/java/com/trustbank/loanapp/...`).
 
 ## 1. The two-layer architecture
@@ -192,7 +192,7 @@ Submit handler: `ApplicationDetailScreen.kt:134-139` (inline in the composable).
 
 ## 5. Login/registration acceptance (not client-side validation, but related)
 
-There's no backend yet (`README.md`), so `FakeAuthRepository.login`
+In demo mode, `FakeAuthRepository.login`
 (`data/repository/AuthRepository.kt:18-25`) doesn't check credentials against a
 real account store — it only requires the two fields to be non-blank (the *format*
 checks already happened in the screen before this is ever called), then signs in as

@@ -20,3 +20,19 @@ local.properties
 
 hs_err_pid*.log
 replay_pid*.log
+node_modules
+
+# Local tools, generated outputs and credentials
+.tools/
+tmp/
+**/target/
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+
+# Python validation-script caches
+__pycache__/
+*.py[cod]

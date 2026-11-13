@@ -47,13 +47,18 @@ class ProfileViewModel(
     fun save(profile: ApplicantProfile) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
-            val updated = profileRepository.updateProfile(profile)
-            _uiState.value = _uiState.value.copy(
-                isSaving = false,
-                isEditing = false,
-                profile = updated,
-                savedMessage = "Profile updated.",
-            )
+            try {
+                val updated = profileRepository.updateProfile(profile)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    isEditing = false,
+                    profile = updated,
+                    savedMessage = "Profile updated.",
+                )
+            } catch (e: Exception) {
+                // Keep the form open and show why the server refused (e.g. a rule the client cannot check).
+                _uiState.value = _uiState.value.copy(isSaving = false, savedMessage = e.message ?: "Could not save profile.")
+            }
         }
     }
 }

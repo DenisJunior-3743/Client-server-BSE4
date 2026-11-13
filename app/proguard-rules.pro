@@ -9,6 +9,9 @@
 -keep class com.trustbank.loanapp.update.UpdateCheckResponse { *; }
 -keep class com.trustbank.loanapp.update.ReleaseInfo { *; }
 
+# Backend wire DTOs (data/remote/ApiDtos.kt): Gson reads/writes them by field name.
+-keep class com.trustbank.loanapp.data.remote.**Dto { *; }
+
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.util.UUID
 
 val REQUIRED_APPLICATION_DOCS = listOf(DocumentType.NATIONAL_ID, DocumentType.PAYSLIP, DocumentType.BANK_STATEMENT)
 
@@ -43,6 +44,12 @@ class NewApplicationViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(NewApplicationUiState())
     val uiState: StateFlow<NewApplicationUiState> = _uiState
+
+    // At-most-once submission: the key belongs to the form's CONTENT. Tapping "Submit" again after
+    // a network error re-sends the same key (the server replays its first reply if the loan was in
+    // fact created); editing the form makes it a different request, so it gets a new key.
+    private var pendingDraft: NewApplicationInput? = null
+    private var pendingKey: String = ""
 
     fun loadProduct(productId: String) {
         viewModelScope.launch {
@@ -96,23 +103,27 @@ class NewApplicationViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSubmitting = true, submitError = null)
             try {
-                val application = applicationRepository.submitApplication(
-                    NewApplicationInput(
-                        productId = product.id,
-                        amountRequested = amount,
-                        termMonths = term,
-                        purpose = purpose,
-                        applicantFullName = applicantFullName,
-                        applicantDob = applicantDob,
-                        applicantNin = applicantNin,
-                        physicalLocation = physicalLocation,
-                        businessName = businessName,
-                        businessLocation = businessLocation,
-                        collateralSecurity = collateralSecurity,
-                        witnesses = witnesses,
-                        paymentTerms = paymentTerms,
-                    ),
+                val draft = NewApplicationInput(
+                    productId = product.id,
+                    amountRequested = amount,
+                    termMonths = term,
+                    purpose = purpose,
+                    applicantFullName = applicantFullName,
+                    applicantDob = applicantDob,
+                    applicantNin = applicantNin,
+                    physicalLocation = physicalLocation,
+                    businessName = businessName,
+                    businessLocation = businessLocation,
+                    collateralSecurity = collateralSecurity,
+                    witnesses = witnesses,
+                    paymentTerms = paymentTerms,
                 )
+                if (draft != pendingDraft) {
+                    pendingDraft = draft
+                    pendingKey = UUID.randomUUID().toString()
+                }
+                val application = applicationRepository.submitApplication(draft.copy(idempotencyKey = pendingKey))
+                pendingDraft = null
                 _uiState.value = _uiState.value.copy(isSubmitting = false, submittedApplicationId = application.id)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSubmitting = false, submitError = e.message ?: "Unable to submit application")

@@ -92,6 +92,24 @@ data class LoanApplication(
     val collateralSecurity: String? = null,
     val witnesses: List<Witness> = emptyList(),
     val paymentTerms: PaymentTerms? = null,
+    // Filled by the real API (Phase 2).
+    val reference: String? = null,
+    /** Firm deadline: an approved offer must be accepted before this moment. */
+    val offerExpiresAt: LocalDateTime? = null,
+)
+
+data class RepaymentInstallment(
+    val installmentNo: Int,
+    val dueDate: LocalDate,
+    val amountDue: Double,
+    val amountPaid: Double,
+    val status: String,
+)
+
+data class RepaymentReceipt(
+    val paymentReference: String,
+    val amountPaid: Double,
+    val outstandingBalance: Double,
 )
 
 data class AppNotification(

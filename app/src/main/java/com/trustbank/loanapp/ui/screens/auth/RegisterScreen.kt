@@ -39,6 +39,7 @@ import com.trustbank.loanapp.util.Validators
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onVerificationNeeded: () -> Unit = {},
     viewModel: AuthViewModel = viewModel(),
 ) {
     SetStatusBarAppearance(darkIcons = false)
@@ -84,7 +85,7 @@ fun RegisterScreen(
             confirmPassword.validateForSubmit(),
         ).all { it }
         if (allValid) {
-            viewModel.register(fullName.value, email.value, phone.value, password.value, onRegisterSuccess)
+            viewModel.register(fullName.value, email.value, phone.value, password.value, onRegisterSuccess, onVerificationNeeded)
         }
     }
 

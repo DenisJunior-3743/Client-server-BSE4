@@ -7,6 +7,13 @@ import kotlinx.coroutines.delay
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<User>
     suspend fun register(fullName: String, email: String, phone: String, password: String): Result<User>
+
+    /** True when a new account must confirm a one-time code before it can sign in (real backend). */
+    val requiresPhoneVerification: Boolean get() = false
+
+    suspend fun verifyPhone(email: String, code: String): Result<Unit> = Result.success(Unit)
+
+    suspend fun resendCode(email: String): Result<Unit> = Result.success(Unit)
 }
 
 // Task 1 has no backend yet — there's no real account database to check

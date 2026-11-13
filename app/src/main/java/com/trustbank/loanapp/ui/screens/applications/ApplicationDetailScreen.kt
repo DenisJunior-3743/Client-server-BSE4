@@ -16,6 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -30,6 +33,7 @@ import com.trustbank.loanapp.ui.common.statusMeta
 import com.trustbank.loanapp.ui.common.toTone
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.BackRow
+import com.trustbank.loanapp.ui.components.DigitsField
 import com.trustbank.loanapp.ui.components.DetailRow
 import com.trustbank.loanapp.ui.components.LoadingIndicator
 import com.trustbank.loanapp.ui.components.PrimaryButton
@@ -38,6 +42,9 @@ import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.components.StatusChip
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Formatters
+import kotlinx.coroutines.delay
+import java.time.Duration
+import java.time.LocalDateTime
 
 @Composable
 fun ApplicationDetailScreen(
@@ -55,6 +62,16 @@ fun ApplicationDetailScreen(
 
     LaunchedEffect(applicationId) { viewModel.load(applicationId) }
 
+    // Clock for the offer countdown, refreshed every second while this screen is open.
+    var now by remember { mutableStateOf(LocalDateTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            now = LocalDateTime.now()
+        }
+    }
+    var paymentAmount by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -71,7 +88,7 @@ fun ApplicationDetailScreen(
             return@Column
         }
 
-        val product = MockData.productById(application.productId)
+        val product = MockData.productById(application.productId) ?: AppContainer.productCache[application.productId]
         val meta = statusMeta(application.status)
 
         Row(
@@ -80,8 +97,8 @@ fun ApplicationDetailScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column {
-                Text(product?.name ?: application.productId, style = MaterialTheme.typography.titleLarge, color = AppColors.Neutral900)
-                Text(application.id, style = MaterialTheme.typography.bodySmall, color = AppColors.Neutral500)
+                Text(product?.name ?: "Loan", style = MaterialTheme.typography.titleLarge, color = AppColors.Neutral900)
+                Text(application.reference ?: application.id, style = MaterialTheme.typography.bodySmall, color = AppColors.Neutral500)
             }
             StatusChip(label = meta.label, tone = meta.tone)
         }
@@ -98,6 +115,78 @@ fun ApplicationDetailScreen(
             DetailRow("Purpose", application.purpose)
             DetailRow("Submitted", Formatters.dateTime(application.submittedAt))
             DetailRow("Last updated", Formatters.dateTime(application.updatedAt))
+        }
+
+        val actionMessage = uiState.actionMessage
+        if (actionMessage != null) {
+            Text(actionMessage, style = MaterialTheme.typography.bodySmall, color = AppColors.Success600)
+        }
+        val actionError = uiState.actionError
+        if (actionError != null) {
+            Text(actionError, style = MaterialTheme.typography.bodySmall, color = AppColors.Danger600)
+        }
+
+        // Approved offer with a FIRM deadline. The countdown and the disabled button mirror the
+        // rule for the borrower; the server is what enforces it (410 after the expiry).
+        if (application.status == LoanStatus.APPROVED) {
+            SectionCard(title = "Loan Offer") {
+                val offerExpiresAt = application.offerExpiresAt
+                val secondsLeft = if (offerExpiresAt == null) Long.MAX_VALUE else Duration.between(now, offerExpiresAt).seconds
+                val offerExpired = secondsLeft <= 0L
+                Text(
+                    "You are approved for ${Formatters.maskedUgx(application.amountApproved ?: application.amountRequested, amountsVisible)}. " +
+                        "Accept the offer to have the funds released.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AppColors.Neutral700,
+                )
+                if (offerExpiresAt != null) {
+                    Text(
+                        if (offerExpired) {
+                            "This offer has expired."
+                        } else {
+                            "Time left to accept: ${remainingLabel(secondsLeft)} (until ${Formatters.dateTime(offerExpiresAt)})"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (offerExpired) AppColors.Danger600 else AppColors.Warning600,
+                    )
+                }
+                PrimaryButton(
+                    text = "Accept offer",
+                    enabled = !offerExpired,
+                    isLoading = uiState.isActing,
+                    onClick = { viewModel.acceptOffer(applicationId) },
+                )
+            }
+        }
+
+        if (uiState.schedule.isNotEmpty()) {
+            SectionCard(title = "Repayment Schedule") {
+                uiState.schedule.forEach { installment ->
+                    DetailRow(
+                        "${installment.installmentNo}. ${Formatters.date(installment.dueDate)}",
+                        "${Formatters.maskedUgx(installment.amountDue, amountsVisible)} · ${installment.status}",
+                    )
+                }
+                val outstanding = uiState.schedule.sumOf { it.amountDue - it.amountPaid }
+                DetailRow("Outstanding balance", Formatters.maskedUgx(outstanding, amountsVisible))
+
+                if (application.status == LoanStatus.ACTIVE || application.status == LoanStatus.DELINQUENT) {
+                    DigitsField(
+                        label = "Amount to pay (UGX)",
+                        value = paymentAmount,
+                        onValueChange = { paymentAmount = it },
+                        maxLength = 10,
+                        placeholder = "e.g. 460783",
+                    )
+                    val amount = paymentAmount.toDoubleOrNull()
+                    PrimaryButton(
+                        text = "Pay with mobile money",
+                        enabled = amount != null && amount > 0.0 && amount <= outstanding,
+                        isLoading = uiState.isActing,
+                        onClick = { if (amount != null) viewModel.repay(applicationId, amount) },
+                    )
+                }
+            }
         }
 
         if (application.businessName != null) {
@@ -171,5 +260,18 @@ fun ApplicationDetailScreen(
                 }
             }
         }
+    }
+}
+
+/** "2d 4h", "3h 12m" or "4m 09s", whichever fits how much time is left. */
+private fun remainingLabel(totalSeconds: Long): String {
+    val days = totalSeconds / 86_400
+    val hours = (totalSeconds % 86_400) / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+    return when {
+        days > 0 -> "${days}d ${hours}h"
+        hours > 0 -> "${hours}h ${minutes}m"
+        else -> "${minutes}m ${seconds.toString().padStart(2, '0')}s"
     }
 }

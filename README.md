@@ -1,43 +1,50 @@
-# TrustBank Loans — Mobile App (Task 1)
+# TrustBank Loans
 
-Kotlin + Jetpack Compose applicant app for the Bank Loan Application System. Covers the mobile side of Task 1: full UI + client-side validation, running entirely on **in-memory mock data** (`data/mock/MockData.kt`) — no backend yet.
+Online bank loan processing coursework: Kotlin/Jetpack Compose for borrowers, React/TypeScript for staff, Spring Boot REST API, and PostgreSQL (Neon for deployment).
 
-## Getting started
+## Repository layout
 
-1. Open the `mobile/` folder as a project in **Android Studio** (Koala/2024.1 or newer recommended).
-2. Let it sync Gradle. This repo's `gradle-wrapper.properties` points at Gradle 8.6, but `gradle-wrapper.jar` (a binary file) isn't checked in from this environment — Android Studio will offer to regenerate the wrapper automatically on first sync. If it doesn't, run once from a machine with Gradle installed:
-   ```
-   gradle wrapper --gradle-version 8.6 --distribution-type bin
-   ```
-3. Run the `app` configuration on an emulator or device (min SDK 26 / Android 8.0+).
+```text
+app/                 Android borrower app
+build.gradle.kts     Android project (open this repository in Android Studio)
+gradle/, gradlew*    Gradle 8.6 wrapper
+web/                 React staff dashboard
+backend/             Spring Boot API, migrations, tests and deployment files
+docs/                Requirements mapping and mobile guide
+```
 
-## Demo login
+The Android project stays at the repository root to preserve its existing package name, signing setup and Reviden update integration. Do not open the old `mobile/` cache folder as a second app. All three components now live together; switching branches or applying the original bundle patches is unnecessary.
 
-There's no backend/account database yet, so login accepts **any** syntactically valid email + any non-empty password — it just signs you in as the same demo applicant (Allan Tumusiime), using whatever email you typed. Registering a new account works the same way (no persistence yet).
+## Build before database setup
 
-## What's implemented
+Use Java 21 for the backend and Java 17 or 21 for Android. The checked-in Maven wrapper downloads Maven 3.9.9 on first use. The Android SDK path belongs in ignored `local.properties`.
 
-- Splash → Onboarding (3 skippable "about the bank" pages, shown whenever a logged-out user cold-starts the app) → Login/Register → bottom-tab shell (Home, Products, Applications, Profile)
-- Product list/detail → 3-step new application flow (loan details → documents → review & submit), each step validated before you can continue
-- Application list + detail with a document checklist and a respond-to-info-request form
-- KYC profile view/edit and account settings, both with the same validation rules as the web dashboard
-- Client-side validation throughout: required fields, email format, Uganda phone format (see below), full name/District (letters only), National ID (14-char alphanumeric), loan amount/term/income (digits only), password strength, DOB age check (18+), amount/term bounds against the selected product
-- Every character-restricted field (name, phone, digits, National ID) shows a live, specific hint the instant an invalid keystroke is rejected — e.g. typing `D3nis` flashes `"3" is not allowed — letters and spaces only` — instead of just silently dropping it
+```powershell
+# From the repository root
+.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest
+cd web
+npm ci
+npm run build
+npm run lint
+cd ..\backend
+.\mvnw.cmd test
+```
 
-## Uganda phone number rule
+These checks do not require a configured database. Backend unit tests cover repayment mathematics, legal workflow steps, retry reply caching, changed-payload refusal, stale versions, OTP/offer expiry and request limits. PostgreSQL concurrency and end-to-end tests are the next stage.
 
-`PhoneField` (`ui/components/AppInputs.kt`) and `Validators.sanitizePhoneInput` (`util/Validators.kt`) strip every non-digit character and cap the result at 10 characters **inside `onValueChange`** — so a letter or symbol never appears in the field, and typing an 11th digit is simply ignored. Final format required: `07XXXXXXXX`. This mirrors `web/src/components/ui/PhoneField.tsx` and `web/src/lib/phone.ts` exactly. The same live-sanitize-with-a-hint pattern (`Validators.sanitizeWithFeedback`) now also backs `NameField` (letters/spaces), `DigitsField` (loan amount/term/income), and `NationalIdField` (uppercase alphanumeric, 14 chars).
+## Connect the clients after configuring PostgreSQL
 
-## Password policy
+Set the backend's environment variables using `backend/.env.example` as a reference. Spring Boot does **not** automatically load that file; export the values in your shell or run configuration. Follow [DEPLOYMENT.md](DEPLOYMENT.md) for PowerShell commands.
 
-`Validators.isStrongPassword` requires 8+ characters with upper case, lower case, a digit, and a symbol. While registering, `PasswordStrengthMeter` shows a color-coded progress bar plus a live checklist of which of those five criteria (length, upper, lower, digit, symbol) are currently met, so the user sees exactly what's missing instead of only a pass/fail message on submit. `PasswordField` also has a show/hide visibility toggle.
+- Start the API from `backend/`: `.\mvnw.cmd spring-boot:run`.
+- In `web/`, set `VITE_API_URL=http://localhost:8080` in an ignored `.env`, then run `npm run dev`.
+- Build Android from the root: `.\gradlew.bat installDebug -PapiBaseUrl=http://10.0.2.2:8080/` (emulator). Use your PC's LAN address for a physical phone.
+- Without an API URL, either client uses demo data. Debug Android builds allow local HTTP; releases require HTTPS.
 
-## Design system
+See [docs/TASKS-COVERAGE.md](docs/TASKS-COVERAGE.md) for the six PDF requirements and implementation paths, [PROGRESS.md](PROGRESS.md) for verified status, and [docs/MOBILE.md](docs/MOBILE.md) for mobile behavior. Signing files, environment secrets, build outputs and dependency caches are ignored.
 
-Colors in `ui/theme/Color.kt` are a Ugandan-bank-inspired palette (navy blue primary + gold accent, pulled from Centenary Bank's public site) and are **deliberately no longer synced** with the web dashboard's `web/src/index.css` tokens — this was a one-off mobile reskin, not a shared-token update. If the web app gets the same treatment later, update it separately.
+## Understand the backend
 
-## Known limitations (by design, for Task 1)
+Start with the [Spring Boot beginner guide](docs/SPRING-BOOT-GUIDE.md) for the architecture, data flow, transactions, security and the current Swagger/OpenAPI setup.
 
-- No real backend/API calls, no persistence beyond the current app process, no authentication token.
-- No real file upload — the document step is a confirmation checklist, not a file picker.
-- Not built/run in this environment (no Android SDK here) — verify in Android Studio before relying on it.
+For Vercel hosting, use the [backend deployment guide](docs/VERCEL-DEPLOYMENT.md). Real database credentials belong in ignored `backend/.env`, not `.env.example`.

@@ -5,6 +5,8 @@ import com.trustbank.loanapp.data.model.LoanApplication
 import com.trustbank.loanapp.data.model.LoanDocument
 import com.trustbank.loanapp.data.model.LoanStatus
 import com.trustbank.loanapp.data.model.PaymentTerms
+import com.trustbank.loanapp.data.model.RepaymentInstallment
+import com.trustbank.loanapp.data.model.RepaymentReceipt
 import com.trustbank.loanapp.data.model.Witness
 import kotlinx.coroutines.delay
 import java.time.LocalDate
@@ -24,6 +26,11 @@ data class NewApplicationInput(
     val collateralSecurity: String,
     val witnesses: List<Witness>,
     val paymentTerms: PaymentTerms,
+    /**
+     * Identifies this submission to the server. Created once per filled-in form and sent again
+     * unchanged on every retry, so a retried request can never create a second loan.
+     */
+    val idempotencyKey: String = "",
 )
 
 interface ApplicationRepository {
@@ -32,6 +39,12 @@ interface ApplicationRepository {
     suspend fun getDocuments(applicationId: String): List<LoanDocument>
     suspend fun submitApplication(input: NewApplicationInput): LoanApplication
     suspend fun respondToInfoRequest(applicationId: String): LoanApplication
+
+    // The two calls below move money, so each takes an idempotency key: the caller creates it
+    // once per user action and passes the same key again when retrying that action.
+    suspend fun acceptOffer(applicationId: String, idempotencyKey: String): LoanApplication
+    suspend fun getSchedule(applicationId: String): List<RepaymentInstallment>
+    suspend fun repay(applicationId: String, amount: Double, idempotencyKey: String): RepaymentReceipt
 }
 
 class FakeApplicationRepository : ApplicationRepository {
@@ -86,5 +99,28 @@ class FakeApplicationRepository : ApplicationRepository {
         )
         MockData.applications[index] = updated
         return updated
+    }
+
+    override suspend fun acceptOffer(applicationId: String, idempotencyKey: String): LoanApplication {
+        delay(400)
+        val index = MockData.applications.indexOfFirst { it.id == applicationId }
+        require(index >= 0) { "Application not found" }
+        val updated = MockData.applications[index].copy(
+            status = LoanStatus.PENDING_DISBURSEMENT,
+            updatedAt = LocalDateTime.now(),
+        )
+        MockData.applications[index] = updated
+        return updated
+    }
+
+    // Demo data has no repayment schedules; the real backend generates one at disbursement.
+    override suspend fun getSchedule(applicationId: String): List<RepaymentInstallment> {
+        delay(200)
+        return emptyList()
+    }
+
+    override suspend fun repay(applicationId: String, amount: Double, idempotencyKey: String): RepaymentReceipt {
+        delay(400)
+        return RepaymentReceipt(paymentReference = "PAY-DEMO", amountPaid = amount, outstandingBalance = 0.0)
     }
 }

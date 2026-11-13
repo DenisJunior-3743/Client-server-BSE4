@@ -27,7 +27,7 @@ import com.trustbank.loanapp.util.Formatters
 
 @Composable
 fun ApplicationRow(application: LoanApplication, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val product = MockData.productById(application.productId)
+    val product = MockData.productById(application.productId) ?: AppContainer.productCache[application.productId]
     val meta = statusMeta(application.status)
     val amountsVisible by AppContainer.visibility.amountsVisible.collectAsState()
 
@@ -42,9 +42,9 @@ fun ApplicationRow(application: LoanApplication, onClick: () -> Unit, modifier: 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(product?.name ?: application.productId, style = MaterialTheme.typography.titleMedium, color = AppColors.Neutral900)
+            Text(product?.name ?: "Loan", style = MaterialTheme.typography.titleMedium, color = AppColors.Neutral900)
             Text(
-                "${application.id} · ${Formatters.maskedUgx(application.amountRequested, amountsVisible)}",
+                "${application.reference ?: application.id} · ${Formatters.maskedUgx(application.amountRequested, amountsVisible)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = AppColors.Neutral500,
             )

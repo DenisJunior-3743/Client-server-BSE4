@@ -11,6 +11,7 @@ import com.trustbank.loanapp.ui.screens.applications.ApplicationDetailScreen
 import com.trustbank.loanapp.ui.screens.apply.NewApplicationScreen
 import com.trustbank.loanapp.ui.screens.auth.LoginScreen
 import com.trustbank.loanapp.ui.screens.auth.RegisterScreen
+import com.trustbank.loanapp.ui.screens.auth.VerifyPhoneScreen
 import com.trustbank.loanapp.ui.screens.main.MainScreen
 import com.trustbank.loanapp.ui.screens.notifications.NotificationsScreen
 import com.trustbank.loanapp.ui.screens.onboarding.OnboardingScreen
@@ -61,6 +62,18 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                     }
                 },
                 onNavigateToLogin = { navController.popBackStack() },
+                onVerificationNeeded = { navController.navigate(Routes.VERIFY_PHONE) },
+            )
+        }
+
+        composable(Routes.VERIFY_PHONE) {
+            VerifyPhoneScreen(
+                onVerified = {
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() },
             )
         }
 

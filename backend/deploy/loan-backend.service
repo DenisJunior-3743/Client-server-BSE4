@@ -1,0 +1,23 @@
+# systemd unit for the API.  Install:
+#   sudo cp deploy/loan-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now loan-backend
+[Unit]
+Description=TrustBank Loan Backend (Spring Boot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=loan
+Group=loan
+WorkingDirectory=/opt/loan-backend
+# Secrets live here, readable only by root and the service user (chmod 640).
+EnvironmentFile=/etc/loan-backend.env
+ExecStart=/usr/bin/java -XX:MaxRAMPercentage=75 -jar /opt/loan-backend/loan-backend.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+# Graceful shutdown: let in-flight requests and background tasks finish.
+TimeoutStopSec=40
+
+[Install]
+WantedBy=multi-user.target

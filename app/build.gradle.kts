@@ -25,6 +25,12 @@ android {
         versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Backend base URL. Empty (the default) keeps the app on its in-memory demo data.
+        // Set it per build:  ./gradlew installDebug -PapiBaseUrl=http://10.0.2.2:8080/
+        // (10.0.2.2 is the emulator's name for the development PC) or in ~/.gradle/gradle.properties.
+        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: ""
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     signingConfigs {
@@ -92,6 +98,11 @@ dependencies {
     // Reviden Store update checking/downloading (see integration.md) — plain HTTP, no other Reviden-specific dependency.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
+
+    // REST client for the Spring Boot backend (data/remote). Retrofit generates the client
+    // stubs from the LoanApi interface; Gson (above) does the JSON marshalling.
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
