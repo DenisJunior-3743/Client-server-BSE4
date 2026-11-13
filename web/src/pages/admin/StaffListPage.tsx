@@ -1,3 +1,4 @@
+import { LoadError } from '@/components/ui/LoadError'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { UserPlus, Users } from 'lucide-react'
@@ -15,11 +16,13 @@ import { Button } from '@/components/ui/Button'
 
 export default function StaffListPage() {
   const [staff, setStaff] = useState<User[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    listStaff().then(setStaff)
+    listStaff().then(setStaff).catch((error: unknown) => setLoadError(error instanceof Error ? error.message : 'Unable to load data'))
   }, [])
 
+  if (loadError) return <LoadError message={loadError} />
   if (!staff) return <PageSpinner />
 
   return (

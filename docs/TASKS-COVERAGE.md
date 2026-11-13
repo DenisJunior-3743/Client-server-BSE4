@@ -52,3 +52,7 @@ Neon configuration, both migrations, API health, Swagger and the complete Python
 ## Practical limits
 
 SMS, the credit bureau and payment settlement are stubs; document bytes are stored in MongoDB Atlas GridFS with metadata and loan ownership in Neon. Tokens and pending verification in Android are in memory. In-process events are not durable across a server crash; an outbox is future work. When the bounded async queue saturates, CallerRunsPolicy can execute work on the publishing thread; normal asynchronous behavior is not a hard latency guarantee. The rate limiter is per server instance. These limits are recorded rather than presented as tested production capabilities.
+
+## API-only clients and staff navigation (2026-11-14)
+
+Web and Android no longer contain client mock-data modes or fake sign-in. Configure the web build with `VITE_API_URL` and Android with `-PapiBaseUrl=https://<backend-domain>/` (or build environment `API_BASE_URL`). Admins see every web workspace; other staff see only their role's workspace, and direct module URLs are guarded by the same policy. Mobile CI is configured in the repository-root `.github/workflows/verify.yml`, with `mobile/` as the Android job working directory.

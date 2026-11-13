@@ -63,3 +63,13 @@ The backend accepts real multipart PDF/JPEG/PNG uploads, stores file bytes in At
 The initial admin defaults to `admin@bank.com` / `Admin123`, stores a BCrypt hash, and is created once without resetting existing passwords. Staff registration remains admin-only. Automatic sample staff seeding is disabled by default. Atlas secrets stay in ignored `atlas-credentials.env` and `backend/.env`. Deployment variables and setup are documented in `backend/GRIDFS-SETUP.md` (or `GRIDFS-SETUP.md` from the backend folder).
 
 Validation: 33 backend unit tests passed; the opt-in Atlas upload/read/delete check passed separately. The packaged API passed health/OpenAPI checks and the full Neon/GridFS workflow smoke test, including admin-created staff, real document uploads/downloads, credit checks, concurrent approvals, disbursement and repayments. The web production build and lint passed. Live smoke-test development records remain in the databases.
+
+## API-only apps, staff modules and CSS warnings (2026-11-14)
+
+Web and mobile client mocks/fake repositories have been removed. Web sign-in always authenticates against the API, rejects tokenless saved demo sessions and reports load failures instead of substituting empty queues. Mobile profile edits now call the account API. Android debug defaults to the emulator's local backend URL; deployed/physical-device builds accept `apiBaseUrl` or `API_BASE_URL`.
+
+One staff-role policy filters the sidebar and guards module URLs. Admin sees all four modules and the bank overview; each other staff role sees its own workspace. Shared loan detail/profile pages remain available to staff.
+
+The Firefox CSS warning came from Recharts CartesianGrid measuring text with undefined font/letter-spacing values. Grid coordinates now use scaled ticks via public coordinate-generator callbacks. An isolated browser reproduced 16 invalid assignments in the previous grid and zero in the fixed charts across all staff roles, while checking rendered grid lines and forbidden URL redirects. Five role-policy tests pass, as do the web build/lint and Android debug build. Android has no unit-test sources. API error presentation and invalid sign-in were checked in the browser.
+
+Android GitHub Actions already exists at repository-root `.github/workflows/verify.yml` in main and mobile branches; the most recent mobile run before this change passed. Web role-policy tests are now included in CI.

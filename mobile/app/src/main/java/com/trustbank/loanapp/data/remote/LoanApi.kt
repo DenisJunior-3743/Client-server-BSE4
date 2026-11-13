@@ -39,6 +39,9 @@ interface LoanApi {
     @POST("api/v1/auth/otp/resend")
     suspend fun resendOtp(@Body body: OtpResendRequestDto): OtpIssuedDto
 
+    @PUT("api/v1/me")
+    suspend fun updateMe(@Body body: UpdateMeRequestDto): UserDto
+
     // ---- products / profile ----
 
     @GET("api/v1/products")

@@ -26,8 +26,7 @@ import com.trustbank.loanapp.data.repository.ProfileRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-// Retrofit-backed implementations of the same repository interfaces the Task 1 fakes
-// implement. Screens and view models are unchanged: AppContainer decides which set they get.
+// All application repositories use the authenticated Spring Boot API.
 //
 // Reads are fail-soft (log, then return empty/null) because several screens load data
 // without a try/catch; a dropped connection must show an empty list, not crash the app.
@@ -52,6 +51,10 @@ class RemoteAuthRepository : AuthRepository {
         }
         TokenStore.accessToken = reply.accessToken
         reply.user.toModel()
+    }
+
+    override suspend fun updateAccount(fullName: String, email: String, phone: String): Result<User> = runApi {
+        ApiClient.call { updateMe(UpdateMeRequestDto(fullName.trim(), email.trim(), phone)).toModel() }
     }
 
     override suspend fun register(fullName: String, email: String, phone: String, password: String): Result<User> = runApi {

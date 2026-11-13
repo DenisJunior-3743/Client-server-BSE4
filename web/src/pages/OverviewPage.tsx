@@ -1,3 +1,4 @@
+import { LoadError } from '@/components/ui/LoadError'
 import { useEffect, useState } from 'react'
 import { FileStack, TrendingUp, Wallet, Clock4 } from 'lucide-react'
 import type { LoanApplication, LoanStatus } from '@/types'
@@ -21,17 +22,21 @@ interface OverviewPageProps {
 
 export function OverviewPage({ title, description, scopeStatuses }: OverviewPageProps) {
   const [applications, setApplications] = useState<LoanApplication[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
     listApplications(scopeStatuses ? { statuses: scopeStatuses } : undefined).then((data) => {
       if (active) setApplications(data)
+    }).catch((error: unknown) => {
+      if (active) setLoadError(error instanceof Error ? error.message : 'Unable to load applications')
     })
     return () => {
       active = false
     }
   }, [scopeStatuses])
 
+  if (loadError) return <LoadError message={loadError} />
   if (!applications) return <PageSpinner />
 
   const kpis = computeKpis(applications)

@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trustbank.loanapp.data.AppContainer
-import com.trustbank.loanapp.data.mock.MockData
 import com.trustbank.loanapp.data.model.DocumentType
 import com.trustbank.loanapp.ui.components.DocumentPickerButton
 import com.trustbank.loanapp.data.model.LoanStatus
@@ -90,7 +89,7 @@ fun ApplicationDetailScreen(
             return@Column
         }
 
-        val product = MockData.productById(application.productId) ?: AppContainer.productCache[application.productId]
+        val product = AppContainer.productCache[application.productId]
         val meta = statusMeta(application.status)
 
         Row(

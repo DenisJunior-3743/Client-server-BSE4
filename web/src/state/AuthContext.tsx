@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import type { User } from '@/types'
 import { login as apiLogin } from '@/api/auth'
-import { USE_MOCKS, clearSession, getToken } from '@/api/client'
+import { isStaffRole } from '@/lib/access'
+import { clearSession, getToken } from '@/api/client'
 
 interface AuthContextValue {
   user: User | null
@@ -17,10 +18,11 @@ const STORAGE_KEY = 'bankloan.currentUser'
 
 function readStoredUser(): User | null {
   try {
-    // API mode: a stored user without a token is not a session.
-    if (!USE_MOCKS && !getToken()) return null
+    if (!getToken()) { clearSession(); return null }
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as User) : null
+    const stored = raw ? (JSON.parse(raw) as User) : null
+    if (!stored || !isStaffRole(stored.role)) { clearSession(); return null }
+    return stored
   } catch {
     return null
   }

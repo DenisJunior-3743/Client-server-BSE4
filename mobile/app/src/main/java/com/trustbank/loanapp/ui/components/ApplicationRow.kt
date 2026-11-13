@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.trustbank.loanapp.data.AppContainer
-import com.trustbank.loanapp.data.mock.MockData
 import com.trustbank.loanapp.data.model.LoanApplication
 import com.trustbank.loanapp.ui.common.statusMeta
 import com.trustbank.loanapp.ui.theme.AppColors
@@ -27,7 +26,7 @@ import com.trustbank.loanapp.util.Formatters
 
 @Composable
 fun ApplicationRow(application: LoanApplication, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val product = MockData.productById(application.productId) ?: AppContainer.productCache[application.productId]
+    val product = AppContainer.productCache[application.productId]
     val meta = statusMeta(application.status)
     val amountsVisible by AppContainer.visibility.amountsVisible.collectAsState()
 

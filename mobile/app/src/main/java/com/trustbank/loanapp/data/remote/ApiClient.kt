@@ -39,8 +39,6 @@ object IdempotencyKeys {
 }
 
 object ApiClient {
-    /** Empty means "no backend configured": AppContainer then uses the in-memory fakes. */
-    val isConfigured: Boolean get() = BuildConfig.API_BASE_URL.isNotBlank()
 
     private val gson = Gson()
 

@@ -68,3 +68,7 @@ Local validation builds and runs the executable jar. The Docker image has not be
 ## GridFS and initial admin
 
 Configure the additional backend variables and Atlas network access described in [the GridFS setup guide](../backend/GRIDFS-SETUP.md). Neon remains required. The initial admin creates staff; sample staff seeding is disabled by default.
+
+## API-only clients and staff navigation (2026-11-14)
+
+Web and Android no longer contain client mock-data modes or fake sign-in. Configure the web build with `VITE_API_URL` and Android with `-PapiBaseUrl=https://<backend-domain>/` (or build environment `API_BASE_URL`). Admins see every web workspace; other staff see only their role's workspace, and direct module URLs are guarded by the same policy. Mobile CI is configured in the repository-root `.github/workflows/verify.yml`, with `mobile/` as the Android job working directory.

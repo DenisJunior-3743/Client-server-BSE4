@@ -1,18 +1,12 @@
-// HTTP client for the Spring Boot API (Phase 2).
-//
-// VITE_API_URL decides the mode:
-//   - unset  -> the Task 1 in-memory mocks (src/api/mock) keep working, no server needed
-//   - set    -> every function in src/api talks to the real backend (src/api/http)
-// Pages import from '@/api/*' and do not know which one they got.
-
-export const API_URL: string = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').replace(/\/+$/, '')
-export const USE_MOCKS: boolean = API_URL === ''
+// All application data comes from the Spring Boot API.
+// Set VITE_API_URL in the web host environment before building.
+export const API_URL: string = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').trim().replace(/\/+$/, '')
 
 const TOKEN_KEY = 'bankloan.token'
 const USER_KEY = 'bankloan.currentUser'
 const REQUEST_TIMEOUT_MS = 15_000
 
-// Simulated network latency so loading states are visible in mock mode.
+// Brief backoff between retries of safe API requests.
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -67,6 +61,7 @@ interface RequestOptions {
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  if (!API_URL) throw new ApiError(0, 'API_NOT_CONFIGURED', 'The banking service is unavailable. Please contact your administrator.')
   const method = options.method ?? 'GET'
   const auth = options.auth ?? true
   const headers: Record<string, string> = { Accept: 'application/json' }
@@ -131,6 +126,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 
 /** Downloads private documents using the same Bearer token as JSON API requests. */
 export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
+  if (!API_URL) throw new ApiError(0, 'API_NOT_CONFIGURED', 'The banking service is unavailable. Please contact your administrator.')
   const token = getToken()
   const response = await fetch(`${API_URL}/api/v1/documents/${encodeURIComponent(documentId)}/content`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},

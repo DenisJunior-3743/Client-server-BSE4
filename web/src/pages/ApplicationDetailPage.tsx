@@ -551,7 +551,7 @@ function TimelineCard({
   history?: StatusHistoryEntry[]
 }) {
   // The real API returns the full status history, one entry per state change of the loan.
-  // Mock mode has none, so it falls back to the milestones it can derive.
+  // If no history was returned, derive the available milestones from the application.
   const fromHistory: TimelineEvent[] = (history ?? []).map((entry) => {
     const meta = STATUS_META[entry.toStatus]
     const tone = meta.tone === 'neutral' ? 'primary' : meta.tone

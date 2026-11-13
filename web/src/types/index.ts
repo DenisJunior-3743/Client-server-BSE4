@@ -1,5 +1,4 @@
-// Mirrors diagrams/erd.puml field-for-field so swapping mock data for the
-// real API in Phase 2 is a data-layer change, not a type rewrite.
+// Staff dashboard types for the Spring Boot API.
 
 export type StaffRole = 'LOAN_OFFICER' | 'CREDIT_ANALYST' | 'BRANCH_MANAGER' | 'ADMIN'
 export type UserRole = 'BORROWER' | StaffRole
@@ -80,7 +79,7 @@ export interface LoanApplication {
   assignedOfficerId?: string
   submittedAt: string
   updatedAt: string
-  // Present when the data comes from the real API (absent in mock mode):
+  // Workflow metadata returned by the backend:
   reference?: string
   /** Optimistic-lock version. Send it back with every command on this application. */
   version?: number

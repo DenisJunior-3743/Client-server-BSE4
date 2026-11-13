@@ -52,7 +52,7 @@ For Android, run inside `mobile/`:
 .\gradlew.bat installDebug -PapiBaseUrl=http://10.0.2.2:8080/
 ```
 
-`10.0.2.2` reaches your PC from an emulator. Use the PC's LAN address for a physical phone. Without an API URL, either client uses demo repositories.
+`10.0.2.2` reaches your PC from an emulator. Use the PC's LAN address for a physical phone. Both clients use the backend exclusively; Android debug builds default to the local emulator URL. Configure the deployed API URL for hosting and physical devices.
 
 ## Learning and deployment
 
@@ -64,3 +64,7 @@ For Android, run inside `mobile/`:
 - [Verified project status](PROGRESS.md)
 
 For Vercel backend hosting, select branch `backend` (or `main`) and Root Directory `backend`. For React select branch `web` (or `main`) and Root Directory `web`.
+
+## API-only clients and staff navigation (2026-11-14)
+
+Web and Android no longer contain client mock-data modes or fake sign-in. Configure the web build with `VITE_API_URL` and Android with `-PapiBaseUrl=https://<backend-domain>/` (or build environment `API_BASE_URL`). Admins see every web workspace; other staff see only their role's workspace, and direct module URLs are guarded by the same policy. Mobile CI is configured in the repository-root `.github/workflows/verify.yml`, with `mobile/` as the Android job working directory.
