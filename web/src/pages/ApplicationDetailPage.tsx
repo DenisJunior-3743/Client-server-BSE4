@@ -23,7 +23,7 @@ import {
   assignToMe,
   disburseLoan,
 } from '@/api/applications'
-import { isVersionConflict, newIdempotencyKey } from '@/api/client'
+import { downloadDocument, isVersionConflict, newIdempotencyKey } from '@/api/client'
 import { STATUS_META } from '@/lib/status'
 import { useProducts } from '@/lib/useProducts'
 import { useAuth } from '@/state/AuthContext'
@@ -206,6 +206,12 @@ export default function ApplicationDetailPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {doc.downloadUrl && (
+                        <Button type="button" size="sm" variant="secondary"
+                          onClick={() => run(() => downloadDocument(doc.id, doc.fileName), 'Document downloaded.')}>
+                          Download
+                        </Button>
+                      )}
                       <Badge tone={doc.verificationStatus === 'VERIFIED' ? 'success' : doc.verificationStatus === 'REJECTED' ? 'danger' : 'warning'}>
                         {doc.verificationStatus}
                       </Badge>

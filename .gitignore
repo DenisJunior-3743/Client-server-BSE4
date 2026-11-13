@@ -44,3 +44,6 @@ __pycache__/
 
 # Legacy root wrapper held open by the old Android Studio project
 /gradle/
+
+# Private MongoDB Atlas connection settings
+atlas-credentials.env
