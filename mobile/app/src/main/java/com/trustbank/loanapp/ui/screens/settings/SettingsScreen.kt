@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -22,19 +23,29 @@ import com.trustbank.loanapp.ui.common.rememberFieldState
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.BackRow
 import com.trustbank.loanapp.ui.components.DetailRow
+import com.trustbank.loanapp.ui.components.NameField
 import com.trustbank.loanapp.ui.components.PhoneField
 import com.trustbank.loanapp.ui.components.PrimaryButton
 import com.trustbank.loanapp.ui.components.SecondaryButton
 import com.trustbank.loanapp.ui.components.SectionCard
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Validators
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
+    SetStatusBarAppearance(darkIcons = true)
+
     val user by AppContainer.session.currentUser.collectAsState()
     var saved by remember { mutableStateOf(false) }
 
-    val fullName = rememberFieldState(user?.fullName ?: "") { if (!Validators.isRequired(it)) "Full name is required" else null }
+    val fullName = rememberFieldState(user?.fullName ?: "") {
+        when {
+            !Validators.isRequired(it) -> "Full name is required"
+            !Validators.isValidFullName(it) -> "Enter your full name (at least 2 letters)"
+            else -> null
+        }
+    }
     val email = rememberFieldState(user?.email ?: "") {
         when {
             !Validators.isRequired(it) -> "Email is required"
@@ -62,6 +73,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -69,7 +81,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
         BackRow(title = "Settings", onBack = onBack)
 
         SectionCard(title = "Account Details") {
-            AppTextField(
+            NameField(
                 label = "Full name",
                 value = fullName.value,
                 onValueChange = { v -> fullName.onValueChange(v); saved = false },

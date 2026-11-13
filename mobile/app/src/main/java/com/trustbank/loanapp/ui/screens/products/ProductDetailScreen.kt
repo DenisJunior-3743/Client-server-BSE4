@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +24,14 @@ import com.trustbank.loanapp.ui.components.DetailRow
 import com.trustbank.loanapp.ui.components.LoadingIndicator
 import com.trustbank.loanapp.ui.components.PrimaryButton
 import com.trustbank.loanapp.ui.components.SectionCard
+import com.trustbank.loanapp.ui.components.SetStatusBarAppearance
 import com.trustbank.loanapp.ui.theme.AppColors
 import com.trustbank.loanapp.util.Formatters
 
 @Composable
 fun ProductDetailScreen(productId: String, onApplyClick: (String) -> Unit, onBack: () -> Unit) {
+    SetStatusBarAppearance(darkIcons = true)
+
     var product by remember { mutableStateOf<LoanProduct?>(null) }
 
     LaunchedEffect(productId) {
@@ -37,6 +41,7 @@ fun ProductDetailScreen(productId: String, onApplyClick: (String) -> Unit, onBac
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {

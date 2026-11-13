@@ -1,33 +1,8 @@
-import { staffUsers } from '@/mocks/data'
-import { AVATAR_PALETTE } from '@/lib/avatarPalette'
-import type { StaffRole, User } from '@/types'
-import { delay } from './client'
+import { USE_MOCKS } from './client'
+import * as http from './http/staff'
+import * as mock from './mock/staff'
 
-export async function listStaff(): Promise<User[]> {
-  await delay(300)
-  return [...staffUsers]
-}
+export type { NewStaffInput } from './http/staff'
 
-export interface NewStaffInput {
-  fullName: string
-  email: string
-  phone: string
-  role: StaffRole
-  branch: string
-}
-
-export async function createStaff(input: NewStaffInput): Promise<User> {
-  await delay(400)
-  const user: User = {
-    id: `staff-${String(staffUsers.length + 1).padStart(2, '0')}`,
-    email: input.email,
-    fullName: input.fullName,
-    phone: input.phone,
-    role: input.role,
-    branch: input.branch,
-    avatarColor: AVATAR_PALETTE[staffUsers.length % AVATAR_PALETTE.length],
-    createdAt: new Date().toISOString(),
-  }
-  staffUsers.push(user)
-  return user
-}
+export const listStaff = USE_MOCKS ? mock.listStaff : http.listStaff
+export const createStaff = USE_MOCKS ? mock.createStaff : http.createStaff

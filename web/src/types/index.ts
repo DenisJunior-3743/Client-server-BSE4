@@ -80,6 +80,14 @@ export interface LoanApplication {
   assignedOfficerId?: string
   submittedAt: string
   updatedAt: string
+  // Present when the data comes from the real API (absent in mock mode):
+  reference?: string
+  /** Optimistic-lock version. Send it back with every command on this application. */
+  version?: number
+  pendingDocuments?: number
+  offerExpiresAt?: string
+  decisionRemarks?: string
+  infoRequestMessage?: string
 }
 
 export interface LoanDocument {
@@ -89,6 +97,7 @@ export interface LoanDocument {
   fileName: string
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED'
   uploadedAt: string
+  version?: number
 }
 
 export interface CreditCheck {
@@ -136,4 +145,28 @@ export interface AuditLogEntry {
   performedByName: string
   performedAt: string
   details: string
+}
+
+export interface StatusHistoryEntry {
+  fromStatus?: LoanStatus
+  toStatus: LoanStatus
+  note?: string
+  changedAt: string
+}
+
+/** Everything the application detail page shows, in one round trip. */
+export interface ApplicationDetail {
+  application: LoanApplication
+  documents: LoanDocument[]
+  creditCheck?: CreditCheck
+  approval?: Approval
+  disbursement?: Disbursement
+  applicantProfile?: ApplicantProfile
+  history?: StatusHistoryEntry[]
+}
+
+export interface StaffCreated {
+  user: User
+  /** Shown once by the real API so the admin can hand it to the new staff member. */
+  temporaryPassword?: string
 }

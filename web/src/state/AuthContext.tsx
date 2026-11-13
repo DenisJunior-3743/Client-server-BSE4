@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import type { User } from '@/types'
 import { login as apiLogin } from '@/api/auth'
+import { USE_MOCKS, clearSession, getToken } from '@/api/client'
 
 interface AuthContextValue {
   user: User | null
@@ -16,6 +17,8 @@ const STORAGE_KEY = 'bankloan.currentUser'
 
 function readStoredUser(): User | null {
   try {
+    // API mode: a stored user without a token is not a session.
+    if (!USE_MOCKS && !getToken()) return null
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? (JSON.parse(raw) as User) : null
   } catch {
@@ -46,7 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     setUser(null)
-    localStorage.removeItem(STORAGE_KEY)
+    // Stateless server: logging out is simply forgetting the token on this device.
+    clearSession()
   }
 
   function updateProfile(updates: Pick<User, 'fullName' | 'email' | 'phone'>) {

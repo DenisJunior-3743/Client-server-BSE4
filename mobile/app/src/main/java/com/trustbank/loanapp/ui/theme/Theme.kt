@@ -20,6 +20,9 @@ data class ExtendedColors(
     val neutralText: Color,
     val mutedText: Color,
     val sidebarBackground: Color,
+    val accent: Color,
+    val accentContainer: Color,
+    val onAccentContainer: Color,
 )
 
 private val LocalExtendedColors = staticCompositionLocalOf {
@@ -33,6 +36,9 @@ private val LocalExtendedColors = staticCompositionLocalOf {
         neutralText = AppColors.Neutral800,
         mutedText = AppColors.Neutral500,
         sidebarBackground = AppColors.Neutral900,
+        accent = AppColors.Gold500,
+        accentContainer = AppColors.Gold50,
+        onAccentContainer = AppColors.Gold700,
     )
 }
 

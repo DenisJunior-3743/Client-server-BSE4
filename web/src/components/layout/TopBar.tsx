@@ -16,7 +16,7 @@ export function TopBar() {
           className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger-500 ring-2 ring-white" />
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold-500 ring-2 ring-white" />
         </button>
         {user && (
           <div className="flex items-center gap-2.5 border-l border-neutral-200 pl-4">

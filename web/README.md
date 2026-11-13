@@ -1,6 +1,10 @@
 # TrustBank Loans — Web Dashboard (Task 1)
 
-React + TypeScript staff dashboard for the Bank Loan Application System. Covers the web side of Task 1: full UI + client-side validation, running entirely on **in-memory mock data** (`src/mocks/data.ts`) — no backend yet.
+React + TypeScript staff dashboard for the Bank Loan Application System. Includes staff screens, client-side validation, and HTTP integration with the Spring Boot API. Without an API URL it uses **in-memory mock data** (`src/mocks/data.ts`).
+
+## Folder and branch
+
+The project is in `web/` on both `main` (the complete monorepo) and `web` (the focused React branch). Enter `web/` before running the commands below. For Vercel use Root Directory `web`, the Vite preset and output directory `dist`; set `VITE_API_URL` to the backend's HTTPS URL at build time.
 
 ## Getting started
 
@@ -14,6 +18,18 @@ Then open the printed local URL (defaults to http://localhost:5173).
 ## Demo login
 
 See [DEMO_CREDENTIALS.md](DEMO_CREDENTIALS.md) for the staff accounts and password — kept out of the app itself so the login page stays a real login page.
+
+## Mock mode and API mode
+
+The dashboard runs in one of two modes, chosen by `VITE_API_URL` (see `.env.example`):
+
+- **Not set (default):** the Task 1 in-memory mock data in `src/api/mock`. No backend needed.
+- **Set, e.g. `VITE_API_URL=http://localhost:8080`:** every function in `src/api` calls the Spring Boot
+  backend through `src/api/http`. Log in with the same demo accounts (the backend's `dev` profile seeds them).
+
+Pages import from `@/api/*` and do not know which mode they are in. In API mode each staff command sends the
+`version` of the application it loaded; if a colleague changed it first, the server replies `409 VERSION_CONFLICT`
+and the detail page reloads and says so instead of overwriting their work (`isVersionConflict` in `src/api/client.ts`).
 
 ## What's implemented
 

@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft } from 'lucide-react'
 import { createStaff } from '@/api/staff'
+import { ApiError } from '@/api/client'
 import { staffSchema, type StaffFormValues } from '@/lib/schemas'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -29,9 +31,35 @@ export default function StaffFormPage() {
     defaultValues: { fullName: '', email: '', phone: '', branch: '' },
   })
 
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+
   async function onSubmit(values: StaffFormValues) {
-    await createStaff(values)
-    navigate('/admin/staff')
+    setFormError(null)
+    try {
+      const created = await createStaff(values)
+      // The real API returns a one-time temporary password; show it before leaving the page.
+      if (created.temporaryPassword) setTemporaryPassword(created.temporaryPassword)
+      else navigate('/admin/staff')
+    } catch (err) {
+      setFormError(err instanceof ApiError || err instanceof Error ? err.message : 'Could not create the account')
+    }
+  }
+
+  if (temporaryPassword) {
+    return (
+      <div className="mx-auto max-w-xl">
+        <PageHeader title="Staff account created" description="Give this temporary password to the new staff member. It is shown only once." />
+        <Card>
+          <p className="rounded-lg bg-neutral-50 p-4 text-center font-mono text-xl font-semibold tracking-wider text-neutral-900">
+            {temporaryPassword}
+          </p>
+          <Button type="button" className="mt-4 w-full" onClick={() => navigate('/admin/staff')}>
+            Done
+          </Button>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -51,6 +79,7 @@ export default function StaffFormPage() {
           <PhoneField label="Phone number" required error={errors.phone?.message} {...register('phone')} />
           <SelectField label="Role" required placeholder="Select a role" options={ROLE_OPTIONS} error={errors.role?.message} {...register('role')} />
           <TextField label="Branch" required placeholder="e.g. Mbarara Branch" error={errors.branch?.message} {...register('branch')} />
+          {formError && <p className="text-sm font-medium text-danger-600">{formError}</p>}
           <Button type="submit" isLoading={isSubmitting}>
             Create staff account
           </Button>

@@ -1,12 +1,5 @@
-import { staffUsers, DEMO_PASSWORD } from '@/mocks/data'
-import type { User } from '@/types'
-import { delay } from './client'
+import { USE_MOCKS } from './client'
+import * as http from './http/auth'
+import * as mock from './mock/auth'
 
-export async function login(email: string, password: string): Promise<User> {
-  await delay(500)
-  const user = staffUsers.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
-  if (!user || password !== DEMO_PASSWORD) {
-    throw new Error('Invalid email or password')
-  }
-  return user
-}
+export const login = USE_MOCKS ? mock.login : http.login

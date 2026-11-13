@@ -5,12 +5,16 @@ import androidx.lifecycle.viewModelScope
 import com.trustbank.loanapp.data.AppContainer
 import com.trustbank.loanapp.data.model.DocumentType
 import com.trustbank.loanapp.data.model.LoanProduct
+import com.trustbank.loanapp.data.model.PaymentTerms
+import com.trustbank.loanapp.data.model.Witness
 import com.trustbank.loanapp.data.repository.ApplicationRepository
 import com.trustbank.loanapp.data.repository.NewApplicationInput
 import com.trustbank.loanapp.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.util.UUID
 
 val REQUIRED_APPLICATION_DOCS = listOf(DocumentType.NATIONAL_ID, DocumentType.PAYSLIP, DocumentType.BANK_STATEMENT)
 
@@ -22,6 +26,13 @@ data class NewApplicationUiState(
     val isSubmitting: Boolean = false,
     val submitError: String? = null,
     val submittedApplicationId: String? = null,
+    // Loaded once from the session/profile so the applicant-details step
+    // can start pre-filled instead of asking the user to retype what's
+    // already on file.
+    val prefillLoaded: Boolean = false,
+    val prefillFullName: String = "",
+    val prefillDob: LocalDate? = null,
+    val prefillNin: String = "",
 )
 
 // Loan details (amount/term/purpose) live in the screen as FieldState, not
@@ -34,10 +45,24 @@ class NewApplicationViewModel(
     private val _uiState = MutableStateFlow(NewApplicationUiState())
     val uiState: StateFlow<NewApplicationUiState> = _uiState
 
+    // At-most-once submission: the key belongs to the form's CONTENT. Tapping "Submit" again after
+    // a network error re-sends the same key (the server replays its first reply if the loan was in
+    // fact created); editing the form makes it a different request, so it gets a new key.
+    private var pendingDraft: NewApplicationInput? = null
+    private var pendingKey: String = ""
+
     fun loadProduct(productId: String) {
         viewModelScope.launch {
             val product = productRepository.getProduct(productId)
-            _uiState.value = _uiState.value.copy(product = product)
+            val user = AppContainer.session.currentUser.value
+            val profile = runCatching { AppContainer.profileRepository.getProfile() }.getOrNull()
+            _uiState.value = _uiState.value.copy(
+                product = product,
+                prefillLoaded = true,
+                prefillFullName = user?.fullName ?: "",
+                prefillDob = profile?.dateOfBirth,
+                prefillNin = profile?.nationalId ?: "",
+            )
         }
     }
 
@@ -60,14 +85,45 @@ class NewApplicationViewModel(
         _uiState.value = _uiState.value.copy(step = step)
     }
 
-    fun submit(amount: Double, term: Int, purpose: String) {
+    fun submit(
+        amount: Double,
+        term: Int,
+        purpose: String,
+        applicantFullName: String,
+        applicantDob: LocalDate,
+        applicantNin: String,
+        physicalLocation: String,
+        businessName: String,
+        businessLocation: String,
+        collateralSecurity: String,
+        witnesses: List<Witness>,
+        paymentTerms: PaymentTerms,
+    ) {
         val product = _uiState.value.product ?: return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSubmitting = true, submitError = null)
             try {
-                val application = applicationRepository.submitApplication(
-                    NewApplicationInput(productId = product.id, amountRequested = amount, termMonths = term, purpose = purpose),
+                val draft = NewApplicationInput(
+                    productId = product.id,
+                    amountRequested = amount,
+                    termMonths = term,
+                    purpose = purpose,
+                    applicantFullName = applicantFullName,
+                    applicantDob = applicantDob,
+                    applicantNin = applicantNin,
+                    physicalLocation = physicalLocation,
+                    businessName = businessName,
+                    businessLocation = businessLocation,
+                    collateralSecurity = collateralSecurity,
+                    witnesses = witnesses,
+                    paymentTerms = paymentTerms,
                 )
+                if (draft != pendingDraft) {
+                    pendingDraft = draft
+                    pendingKey = UUID.randomUUID().toString()
+                }
+                val application = applicationRepository.submitApplication(draft.copy(idempotencyKey = pendingKey))
+                pendingDraft = null
                 _uiState.value = _uiState.value.copy(isSubmitting = false, submittedApplicationId = application.id)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSubmitting = false, submitError = e.message ?: "Unable to submit application")

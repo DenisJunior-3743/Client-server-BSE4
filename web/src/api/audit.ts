@@ -1,8 +1,5 @@
-import { auditLog } from '@/mocks/data'
-import type { AuditLogEntry } from '@/types'
-import { delay } from './client'
+import { USE_MOCKS } from './client'
+import * as http from './http/audit'
+import * as mock from './mock/audit'
 
-export async function listAuditLog(): Promise<AuditLogEntry[]> {
-  await delay(300)
-  return [...auditLog]
-}
+export const listAuditLog = USE_MOCKS ? mock.listAuditLog : http.listAuditLog

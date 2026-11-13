@@ -1,13 +1,46 @@
-# OS junk
+*.iml
+.gradle/
+/local.properties
+/.idea/
 .DS_Store
-Thumbs.db
+build/
+.kotlin/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.apk
+*.aab
 
-# Office lock files
-~$*.docx
-~$*.pptx
-~$*.xlsx
+# Release signing material — never commit a keystore or its passwords.
+# Back this up somewhere safe outside git (integration.md: the same key
+# must be reused for every future release, or updates break for everyone
+# who already installed the app).
+**/keystore/
 
-# Local tool/session state (not part of the project)
-.claude/
-.vscode/
-.idea/
+hs_err_pid*.log
+replay_pid*.log
+node_modules
+
+# Local tools, generated outputs and credentials
+.tools/
+tmp/
+**/target/
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+
+# Python validation-script caches
+__pycache__/
+*.py[cod]
+
+# Android signing files remain local after folder reorganization
+*.jks
+*.keystore
+**/releases/
+
+# Legacy root wrapper held open by the old Android Studio project
+/gradle/

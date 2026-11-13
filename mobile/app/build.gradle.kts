@@ -1,6 +1,16 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+// Release signing lives outside git (see keystore/keystore.properties, gitignored) —
+// same key must be reused for every Reviden Store release (integration.md §1).
+val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -11,16 +21,37 @@ android {
         applicationId = "com.trustbank.loanapp"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0-task1"
+        versionCode = 2
+        versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Backend base URL. Empty (the default) keeps the app on its in-memory demo data.
+        // Set it per build:  ./gradlew installDebug -PapiBaseUrl=http://10.0.2.2:8080/
+        // (10.0.2.2 is the emulator's name for the development PC) or in ~/.gradle/gradle.properties.
+        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: ""
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -35,6 +66,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -62,6 +94,15 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
 
     implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // Reviden Store update checking/downloading (see integration.md) — plain HTTP, no other Reviden-specific dependency.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.code.gson:gson:2.11.0")
+
+    // REST client for the Spring Boot backend (data/remote). Retrofit generates the client
+    // stubs from the LoanApi interface; Gson (above) does the JSON marshalling.
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
