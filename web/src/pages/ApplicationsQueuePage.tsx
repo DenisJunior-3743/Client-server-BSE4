@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
 import type { LoanApplication } from '@/types'
 import { listApplications } from '@/api/applications'
-import { loanProducts } from '@/mocks/data'
+import { useProducts } from '@/lib/useProducts'
 import { formatUGX, formatDate } from '@/lib/format'
 import { colorForId } from '@/lib/avatarPalette'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -22,12 +22,17 @@ interface ApplicationsQueuePageProps {
 export function ApplicationsQueuePage({ title, description, filter, emptyMessage }: ApplicationsQueuePageProps) {
   const [applications, setApplications] = useState<LoanApplication[] | null>(null)
   const navigate = useNavigate()
+  const loanProducts = useProducts()
 
   useEffect(() => {
     let active = true
-    listApplications().then((data) => {
-      if (active) setApplications(filter(data))
-    })
+    listApplications()
+      .then((data) => {
+        if (active) setApplications(filter(data))
+      })
+      .catch(() => {
+        if (active) setApplications([])
+      })
     return () => {
       active = false
     }

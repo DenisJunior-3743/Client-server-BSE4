@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,6 +10,8 @@ import {
   Banknote,
   ShieldCheck,
   MessageCircleQuestion,
+  UserCheck,
+  Send,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -18,8 +20,13 @@ import {
   recordCreditCheck,
   recordDecision,
   updateApplicationStatus,
+  assignToMe,
+  disburseLoan,
 } from '@/api/applications'
-import { loanProducts } from '@/mocks/data'
+import { isVersionConflict, newIdempotencyKey } from '@/api/client'
+import { STATUS_META } from '@/lib/status'
+import { useProducts } from '@/lib/useProducts'
+import { useAuth } from '@/state/AuthContext'
 import { formatUGX, formatDate, formatDateTime } from '@/lib/format'
 import { colorForId } from '@/lib/avatarPalette'
 import { cn } from '@/lib/cn'
@@ -31,7 +38,7 @@ import {
   infoRequestSchema,
   type InfoRequestFormValues,
 } from '@/lib/schemas'
-import type { LoanApplication, CreditCheck, Approval, Disbursement } from '@/types'
+import type { LoanApplication, CreditCheck, Approval, Disbursement, StatusHistoryEntry } from '@/types'
 import { PageSpinner } from '@/components/ui/PageSpinner'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -49,7 +56,12 @@ export default function ApplicationDetailPage() {
   const navigate = useNavigate()
   const [bundle, setBundle] = useState<DetailBundle | null>(null)
   const [notFound, setNotFound] = useState(false)
-  const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'danger'; text: string } | null>(null)
+  const loanProducts = useProducts()
+  const { user } = useAuth()
+  // One key per disbursement. It survives re-renders and failed attempts, so a retry after a lost
+  // reply re-sends the same key and the server pays out at most once. Replaced only after success.
+  const disbursementKey = useRef(newIdempotencyKey())
 
   const load = useCallback(() => {
     if (!id) return
@@ -75,13 +87,34 @@ export default function ApplicationDetailPage() {
 
   if (!bundle) return <PageSpinner />
 
-  const { application, documents, creditCheck, approval, disbursement, applicantProfile } = bundle
+  const { application, documents, creditCheck, approval, disbursement, applicantProfile, history } = bundle
   const product = loanProducts.find((p) => p.id === application.productId)
 
   function refreshWithMessage(message: string) {
-    setActionMessage(message)
+    setNotice({ tone: 'success', text: message })
     load()
-    window.setTimeout(() => setActionMessage(null), 3000)
+    window.setTimeout(() => setNotice((current) => (current?.text === message ? null : current)), 3000)
+  }
+
+  // Optimistic concurrency, client side: every command carries the `version` this screen loaded.
+  // If a colleague changed the application first, the server answers 409 instead of overwriting
+  // their work. We reload the latest state and ask the officer to look again before retrying.
+  function handleActionError(err: unknown) {
+    if (isVersionConflict(err)) {
+      setNotice({
+        tone: 'warning',
+        text: 'A colleague updated this application while you had it open. The latest version is now shown. Review it, then repeat your action if it still applies.',
+      })
+    } else {
+      setNotice({ tone: 'danger', text: err instanceof Error ? err.message : 'The action could not be completed.' })
+    }
+    load()
+  }
+
+  function run(action: () => Promise<unknown>, successMessage: string) {
+    return action()
+      .then(() => refreshWithMessage(successMessage))
+      .catch(handleActionError)
   }
 
   return (
@@ -94,9 +127,17 @@ export default function ApplicationDetailPage() {
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
 
-      {actionMessage && (
-        <div className="mb-4 rounded-xl bg-success-50 px-4 py-3 text-sm font-medium text-success-700 ring-1 ring-inset ring-success-200">
-          {actionMessage}
+      {notice && (
+        <div
+          role="status"
+          className={cn(
+            'mb-4 rounded-xl px-4 py-3 text-sm font-medium ring-1 ring-inset',
+            notice.tone === 'success' && 'bg-success-50 text-success-700 ring-success-200',
+            notice.tone === 'warning' && 'bg-warning-50 text-warning-700 ring-warning-200',
+            notice.tone === 'danger' && 'bg-danger-50 text-danger-700 ring-danger-200',
+          )}
+        >
+          {notice.text}
         </div>
       )}
 
@@ -106,7 +147,7 @@ export default function ApplicationDetailPage() {
           <div>
             <h1 className="font-display text-2xl font-extrabold text-neutral-900">{application.applicantName}</h1>
             <p className="text-sm text-neutral-500">
-              {application.id} · {application.applicantPhone}
+              {application.reference ?? application.id} · {application.applicantPhone}
             </p>
           </div>
         </div>
@@ -174,7 +215,7 @@ export default function ApplicationDetailPage() {
                             type="button"
                             size="sm"
                             variant="success"
-                            onClick={() => setDocumentStatus(doc.id, 'VERIFIED').then(() => refreshWithMessage('Document verified.'))}
+                            onClick={() => run(() => setDocumentStatus(doc.id, 'VERIFIED', doc.version), 'Document verified.')}
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> Verify
                           </Button>
@@ -182,7 +223,7 @@ export default function ApplicationDetailPage() {
                             type="button"
                             size="sm"
                             variant="danger"
-                            onClick={() => setDocumentStatus(doc.id, 'REJECTED').then(() => refreshWithMessage('Document rejected.'))}
+                            onClick={() => run(() => setDocumentStatus(doc.id, 'REJECTED', doc.version), 'Document rejected.')}
                           >
                             <XCircle className="h-3.5 w-3.5" /> Reject
                           </Button>
@@ -195,13 +236,89 @@ export default function ApplicationDetailPage() {
             )}
           </Card>
 
-          <TimelineCard application={application} creditCheck={creditCheck} approval={approval} disbursement={disbursement} />
+          <TimelineCard application={application} creditCheck={creditCheck} approval={approval} disbursement={disbursement} history={history} />
         </div>
 
         <div className="flex flex-col gap-5">
-          <CreditAssessmentPanel applicationId={application.id} existing={creditCheck} onSaved={() => refreshWithMessage('Credit check recorded.')} />
-          <DecisionPanel applicationId={application.id} existing={approval} onSaved={() => refreshWithMessage('Decision recorded.')} />
-          <InfoRequestPanel applicationId={application.id} onSaved={() => refreshWithMessage('Request for more information sent to applicant.')} />
+          {application.status === 'SUBMITTED' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Officer Actions</CardTitle>
+              </CardHeader>
+              <div className="flex flex-col gap-3">
+                {!application.assignedOfficerId && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => run(() => assignToMe(application.id, user?.id ?? '', application.version), 'Application assigned to you.')}
+                  >
+                    <UserCheck className="h-4 w-4" /> Pick up application
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={() =>
+                    run(
+                      () => updateApplicationStatus(application.id, 'CREDIT_CHECK_PENDING', { version: application.version }),
+                      'Forwarded for credit check.',
+                    )
+                  }
+                >
+                  <Send className="h-4 w-4" /> Forward for credit check
+                </Button>
+              </div>
+            </Card>
+          )}
+          {application.status === 'PENDING_DISBURSEMENT' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Disbursement</CardTitle>
+              </CardHeader>
+              <p className="mb-3 text-sm text-neutral-600">
+                The borrower accepted the offer. Release {formatUGX(application.amountApproved ?? application.amountRequested)} by:
+              </p>
+              <div className="flex flex-col gap-3">
+                {(['BANK_TRANSFER', 'MOBILE_MONEY'] as const).map((method) => (
+                  <Button
+                    key={method}
+                    type="button"
+                    variant={method === 'BANK_TRANSFER' ? 'success' : 'secondary'}
+                    onClick={() =>
+                      run(
+                        () =>
+                          disburseLoan(application.id, method, application.version, disbursementKey.current).then(() => {
+                            disbursementKey.current = newIdempotencyKey()
+                          }),
+                        'Funds disbursed. The repayment schedule has started.',
+                      )
+                    }
+                  >
+                    <Banknote className="h-4 w-4" /> {method === 'BANK_TRANSFER' ? 'Bank transfer' : 'Mobile money'}
+                  </Button>
+                ))}
+              </div>
+            </Card>
+          )}
+          <CreditAssessmentPanel
+            applicationId={application.id}
+            version={application.version}
+            existing={creditCheck}
+            onSaved={() => refreshWithMessage('Credit check recorded.')}
+            onError={handleActionError}
+          />
+          <DecisionPanel
+            applicationId={application.id}
+            version={application.version}
+            existing={approval}
+            onSaved={() => refreshWithMessage('Decision recorded.')}
+            onError={handleActionError}
+          />
+          <InfoRequestPanel
+            applicationId={application.id}
+            version={application.version}
+            onSaved={() => refreshWithMessage('Request for more information sent to applicant.')}
+            onError={handleActionError}
+          />
         </div>
       </div>
     </div>
@@ -219,12 +336,16 @@ function Field({ label, value }: { label: string; value: string }) {
 
 function CreditAssessmentPanel({
   applicationId,
+  version,
   existing,
   onSaved,
+  onError,
 }: {
   applicationId: string
+  version?: number
   existing?: CreditCheck
   onSaved: () => void
+  onError: (err: unknown) => void
 }) {
   const {
     register,
@@ -236,8 +357,12 @@ function CreditAssessmentPanel({
   })
 
   async function onSubmit(values: CreditAssessmentFormValues) {
-    await recordCreditCheck(applicationId, values.score, values.result)
-    onSaved()
+    try {
+      await recordCreditCheck(applicationId, values.score, values.result, version)
+      onSaved()
+    } catch (err) {
+      onError(err)
+    }
   }
 
   return (
@@ -273,12 +398,16 @@ function CreditAssessmentPanel({
 
 function DecisionPanel({
   applicationId,
+  version,
   existing,
   onSaved,
+  onError,
 }: {
   applicationId: string
+  version?: number
   existing?: Approval
   onSaved: () => void
+  onError: (err: unknown) => void
 }) {
   const {
     register,
@@ -292,8 +421,12 @@ function DecisionPanel({
   const decision = watch('decision')
 
   async function onSubmit(values: DecisionFormValues) {
-    await recordDecision(applicationId, values.decision, values.comments)
-    onSaved()
+    try {
+      await recordDecision(applicationId, values.decision, values.comments, version)
+      onSaved()
+    } catch (err) {
+      onError(err)
+    }
   }
 
   return (
@@ -332,7 +465,17 @@ function DecisionPanel({
   )
 }
 
-function InfoRequestPanel({ applicationId, onSaved }: { applicationId: string; onSaved: () => void }) {
+function InfoRequestPanel({
+  applicationId,
+  version,
+  onSaved,
+  onError,
+}: {
+  applicationId: string
+  version?: number
+  onSaved: () => void
+  onError: (err: unknown) => void
+}) {
   const {
     register,
     handleSubmit,
@@ -343,10 +486,14 @@ function InfoRequestPanel({ applicationId, onSaved }: { applicationId: string; o
     defaultValues: { message: '' },
   })
 
-  async function onSubmit() {
-    await updateApplicationStatus(applicationId, 'AWAITING_ADDITIONAL_INFO')
-    reset()
-    onSaved()
+  async function onSubmit(values: InfoRequestFormValues) {
+    try {
+      await updateApplicationStatus(applicationId, 'AWAITING_ADDITIONAL_INFO', { version, note: values.message })
+      reset()
+      onSaved()
+    } catch (err) {
+      onError(err)
+    }
   }
 
   return (
@@ -389,31 +536,50 @@ function TimelineCard({
   creditCheck,
   approval,
   disbursement,
+  history,
 }: {
   application: LoanApplication
   creditCheck?: CreditCheck
   approval?: Approval
   disbursement?: Disbursement
+  history?: StatusHistoryEntry[]
 }) {
-  const events: TimelineEvent[] = [{ label: 'Application submitted', at: application.submittedAt, icon: FileText, tone: 'primary' }]
-  if (creditCheck) {
-    events.push({
-      label: `Credit check ${creditCheck.result.toLowerCase()} (score ${creditCheck.score})`,
-      at: creditCheck.checkedAt,
-      icon: ShieldCheck,
-      tone: creditCheck.result === 'PASSED' ? 'success' : 'danger',
-    })
-  }
-  if (approval) {
-    events.push({
-      label: `Application ${approval.decision.toLowerCase()}`,
-      at: approval.decidedAt,
-      icon: approval.decision === 'APPROVED' ? CheckCircle2 : XCircle,
-      tone: approval.decision === 'APPROVED' ? 'success' : 'danger',
-    })
-  }
-  if (disbursement?.disbursedAt) {
-    events.push({ label: `Funds disbursed (${formatUGX(disbursement.amount)})`, at: disbursement.disbursedAt, icon: Banknote, tone: 'success' })
+  // The real API returns the full status history, one entry per state change of the loan.
+  // Mock mode has none, so it falls back to the milestones it can derive.
+  const fromHistory: TimelineEvent[] = (history ?? []).map((entry) => {
+    const meta = STATUS_META[entry.toStatus]
+    const tone = meta.tone === 'neutral' ? 'primary' : meta.tone
+    return {
+      label: entry.note ? `${meta.label}: ${entry.note}` : meta.label,
+      at: entry.changedAt,
+      icon: tone === 'success' ? CheckCircle2 : tone === 'danger' ? XCircle : tone === 'warning' ? MessageCircleQuestion : FileText,
+      tone,
+    }
+  })
+  const events: TimelineEvent[] =
+    fromHistory.length > 0
+      ? fromHistory
+      : [{ label: 'Application submitted', at: application.submittedAt, icon: FileText, tone: 'primary' }]
+  if (fromHistory.length === 0) {
+    if (creditCheck) {
+      events.push({
+        label: `Credit check ${creditCheck.result.toLowerCase()} (score ${creditCheck.score})`,
+        at: creditCheck.checkedAt,
+        icon: ShieldCheck,
+        tone: creditCheck.result === 'PASSED' ? 'success' : 'danger',
+      })
+    }
+    if (approval) {
+      events.push({
+        label: `Application ${approval.decision.toLowerCase()}`,
+        at: approval.decidedAt,
+        icon: approval.decision === 'APPROVED' ? CheckCircle2 : XCircle,
+        tone: approval.decision === 'APPROVED' ? 'success' : 'danger',
+      })
+    }
+    if (disbursement?.disbursedAt) {
+      events.push({ label: `Funds disbursed (${formatUGX(disbursement.amount)})`, at: disbursement.disbursedAt, icon: Banknote, tone: 'success' })
+    }
   }
   events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
 

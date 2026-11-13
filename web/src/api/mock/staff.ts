@@ -1,7 +1,7 @@
 import { staffUsers } from '@/mocks/data'
 import { AVATAR_PALETTE } from '@/lib/avatarPalette'
-import type { StaffRole, User } from '@/types'
-import { delay } from './client'
+import type { StaffCreated, StaffRole, User } from '@/types'
+import { delay } from '../client'
 
 export async function listStaff(): Promise<User[]> {
   await delay(300)
@@ -16,7 +16,7 @@ export interface NewStaffInput {
   branch: string
 }
 
-export async function createStaff(input: NewStaffInput): Promise<User> {
+export async function createStaff(input: NewStaffInput): Promise<StaffCreated> {
   await delay(400)
   const user: User = {
     id: `staff-${String(staffUsers.length + 1).padStart(2, '0')}`,
@@ -29,5 +29,5 @@ export async function createStaff(input: NewStaffInput): Promise<User> {
     createdAt: new Date().toISOString(),
   }
   staffUsers.push(user)
-  return user
+  return { user }
 }

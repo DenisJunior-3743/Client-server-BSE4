@@ -1,6 +1,6 @@
 import { loanProducts } from '@/mocks/data'
 import type { LoanProduct } from '@/types'
-import { delay } from './client'
+import { delay } from '../client'
 
 export async function listProducts(): Promise<LoanProduct[]> {
   await delay(300)

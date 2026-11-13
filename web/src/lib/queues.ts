@@ -10,8 +10,13 @@ export const officerInReviewFilter = (apps: LoanApplication[]) => apps.filter((a
 
 export const officerInfoRequestsFilter = (apps: LoanApplication[]) => apps.filter((a) => a.status === 'AWAITING_ADDITIONAL_INFO')
 
+// The real API reports `pendingDocuments` on each application; mock mode looks it up locally.
 export const analystVerificationFilter = (apps: LoanApplication[]) =>
-  apps.filter((a) => documents.some((d) => d.loanApplicationId === a.id && d.verificationStatus === 'PENDING'))
+  apps.filter((a) =>
+    a.pendingDocuments !== undefined
+      ? a.pendingDocuments > 0
+      : documents.some((d) => d.loanApplicationId === a.id && d.verificationStatus === 'PENDING'),
+  )
 
 export const analystCreditAssessmentFilter = (apps: LoanApplication[]) => apps.filter((a) => a.status === 'CREDIT_CHECK_PENDING')
 

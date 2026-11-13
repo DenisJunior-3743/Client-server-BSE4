@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from '@/state/AuthContext'
+import { updateMyAccount } from '@/api/account'
 import { profileSchema, type ProfileFormValues } from '@/lib/schemas'
 import { STAFF_ROLE_META } from '@/lib/status'
 import { formatDate } from '@/lib/format'
@@ -16,6 +17,7 @@ import { Badge } from '@/components/ui/Badge'
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth()
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const {
     register,
@@ -29,9 +31,14 @@ export default function ProfilePage() {
   if (!user) return null
 
   async function onSubmit(values: ProfileFormValues) {
-    updateProfile(values)
-    setSaved(true)
-    window.setTimeout(() => setSaved(false), 2500)
+    setSaveError(null)
+    try {
+      updateProfile(await updateMyAccount(values))
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save your details')
+    }
   }
 
   return (
@@ -66,6 +73,7 @@ export default function ProfilePage() {
               Save changes
             </Button>
             {saved && <span className="text-sm font-medium text-success-600">Saved.</span>}
+            {saveError && <span className="text-sm font-medium text-danger-600">{saveError}</span>}
           </div>
         </form>
       </Card>

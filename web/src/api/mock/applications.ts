@@ -1,6 +1,6 @@
 import { applications, documents, creditChecks, approvals, disbursements, getApplicantProfile } from '@/mocks/data'
-import type { LoanApplication, LoanStatus } from '@/types'
-import { delay } from './client'
+import type { ApplicationDetail, Disbursement, LoanApplication, LoanDocument, LoanStatus } from '@/types'
+import { delay } from '../client'
 
 export interface ApplicationFilter {
   statuses?: LoanStatus[]
@@ -12,7 +12,7 @@ export async function listApplications(filter?: ApplicationFilter): Promise<Loan
   return applications.filter((a) => filter.statuses!.includes(a.status))
 }
 
-export async function getApplicationDetail(id: string) {
+export async function getApplicationDetail(id: string): Promise<ApplicationDetail> {
   await delay(300)
   const application = applications.find((a) => a.id === id)
   if (!application) throw new Error('Application not found')
@@ -28,7 +28,11 @@ export async function getApplicationDetail(id: string) {
 
 // Mutations act on the in-memory mock array directly — Task 1 has no backend
 // or persistence yet, so "saving" only lasts for the current browser session.
-export async function updateApplicationStatus(id: string, status: LoanStatus): Promise<LoanApplication> {
+export async function updateApplicationStatus(
+  id: string,
+  status: LoanStatus,
+  _options?: { version?: number; note?: string },
+): Promise<LoanApplication> {
   await delay(400)
   const application = applications.find((a) => a.id === id)
   if (!application) throw new Error('Application not found')
@@ -37,7 +41,12 @@ export async function updateApplicationStatus(id: string, status: LoanStatus): P
   return application
 }
 
-export async function recordDecision(id: string, decision: 'APPROVED' | 'REJECTED', comments: string) {
+export async function recordDecision(
+  id: string,
+  decision: 'APPROVED' | 'REJECTED',
+  comments: string,
+  _version?: number,
+): Promise<LoanApplication> {
   await delay(400)
   const application = applications.find((a) => a.id === id)
   if (!application) throw new Error('Application not found')
@@ -55,7 +64,12 @@ export async function recordDecision(id: string, decision: 'APPROVED' | 'REJECTE
   return application
 }
 
-export async function recordCreditCheck(id: string, score: number, result: 'PASSED' | 'FAILED') {
+export async function recordCreditCheck(
+  id: string,
+  score: number,
+  result: 'PASSED' | 'FAILED',
+  _version?: number,
+): Promise<LoanApplication> {
   await delay(400)
   const application = applications.find((a) => a.id === id)
   if (!application) throw new Error('Application not found')
@@ -72,10 +86,46 @@ export async function recordCreditCheck(id: string, score: number, result: 'PASS
   return application
 }
 
-export async function setDocumentStatus(documentId: string, status: 'VERIFIED' | 'REJECTED') {
+export async function setDocumentStatus(
+  documentId: string,
+  status: 'VERIFIED' | 'REJECTED',
+  _version?: number,
+): Promise<LoanDocument> {
   await delay(300)
   const document = documents.find((d) => d.id === documentId)
   if (!document) throw new Error('Document not found')
   document.verificationStatus = status
   return document
+}
+
+export async function assignToMe(id: string, officerId: string, _version?: number): Promise<LoanApplication> {
+  await delay(300)
+  const application = applications.find((a) => a.id === id)
+  if (!application) throw new Error('Application not found')
+  application.assignedOfficerId = officerId
+  application.updatedAt = new Date().toISOString()
+  return application
+}
+
+export async function disburseLoan(
+  id: string,
+  method: Disbursement['method'],
+  _version?: number,
+  _idempotencyKey?: string,
+): Promise<Disbursement> {
+  await delay(400)
+  const application = applications.find((a) => a.id === id)
+  if (!application) throw new Error('Application not found')
+  application.status = 'ACTIVE'
+  application.updatedAt = new Date().toISOString()
+  const disbursement: Disbursement = {
+    id: `DIS-${String(disbursements.length + 1).padStart(4, '0')}`,
+    loanApplicationId: id,
+    amount: application.amountApproved ?? application.amountRequested,
+    method,
+    status: 'COMPLETED',
+    disbursedAt: application.updatedAt,
+  }
+  disbursements.push(disbursement)
+  return disbursement
 }

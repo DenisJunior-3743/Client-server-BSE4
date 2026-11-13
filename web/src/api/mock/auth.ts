@@ -1,6 +1,6 @@
 import { staffUsers, DEMO_PASSWORD } from '@/mocks/data'
 import type { User } from '@/types'
-import { delay } from './client'
+import { delay } from '../client'
 
 export async function login(email: string, password: string): Promise<User> {
   await delay(500)
