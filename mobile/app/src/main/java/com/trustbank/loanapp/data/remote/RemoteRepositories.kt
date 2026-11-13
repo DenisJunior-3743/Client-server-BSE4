@@ -1,6 +1,11 @@
 package com.trustbank.loanapp.data.remote
 
 import android.util.Log
+import com.trustbank.loanapp.data.model.DocumentType
+import com.trustbank.loanapp.data.model.DocumentUpload
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MultipartBody
 import com.trustbank.loanapp.data.AppContainer
 import com.trustbank.loanapp.data.PendingVerification
 import com.trustbank.loanapp.data.model.AppNotification
@@ -147,6 +152,13 @@ class RemoteApplicationRepository : ApplicationRepository {
 
     override suspend fun getDocuments(applicationId: String): List<LoanDocument> =
         readOr(emptyList()) { getApplication(applicationId).documents.orEmpty().map { it.toModel() } }
+
+    override suspend fun uploadDocument(applicationId: String, type: DocumentType, upload: DocumentUpload): LoanDocument =
+        ApiClient.call {
+            uploadDocument(applicationId, type.name.toRequestBody("text/plain".toMediaType()),
+                MultipartBody.Part.createFormData("file", upload.fileName,
+                    upload.bytes.toRequestBody(upload.contentType.toMediaType()))).toModel()
+        }
 
     /**
      * At-most-once submission. [NewApplicationInput.idempotencyKey] was created once for this

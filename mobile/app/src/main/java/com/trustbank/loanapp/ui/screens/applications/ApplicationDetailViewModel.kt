@@ -3,6 +3,8 @@ package com.trustbank.loanapp.ui.screens.applications
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trustbank.loanapp.data.AppContainer
+import com.trustbank.loanapp.data.model.DocumentType
+import com.trustbank.loanapp.data.model.DocumentUpload
 import com.trustbank.loanapp.data.model.LoanApplication
 import com.trustbank.loanapp.data.model.LoanDocument
 import com.trustbank.loanapp.data.model.LoanStatus
@@ -50,6 +52,27 @@ class ApplicationDetailViewModel(
                 documents = documents,
                 schedule = schedule,
             )
+        }
+    }
+
+    fun documentError(message: String) {
+        _uiState.value = _uiState.value.copy(actionError = message)
+    }
+
+    fun uploadDocument(applicationId: String, type: DocumentType, upload: DocumentUpload) {
+        if (_uiState.value.isActing) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isActing = true, actionError = null, actionMessage = null)
+            try {
+                val document = applicationRepository.uploadDocument(applicationId, type, upload)
+                _uiState.value = _uiState.value.copy(isActing = false,
+                    documents = _uiState.value.documents + document, actionMessage = "Document uploaded.")
+                load(applicationId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isActing = false, actionError = e.message ?: "Upload failed")
+            }
         }
     }
 

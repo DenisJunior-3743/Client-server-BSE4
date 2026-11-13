@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trustbank.loanapp.data.AppContainer
 import com.trustbank.loanapp.data.mock.MockData
+import com.trustbank.loanapp.data.model.DocumentType
+import com.trustbank.loanapp.ui.components.DocumentPickerButton
 import com.trustbank.loanapp.data.model.LoanStatus
 import com.trustbank.loanapp.ui.common.documentTypeLabel
 import com.trustbank.loanapp.ui.common.paymentTermsLabel
@@ -204,6 +206,16 @@ fun ApplicationDetailScreen(
             SectionCard(title = "Witnesses") {
                 application.witnesses.forEachIndexed { index, witness ->
                     DetailRow("Witness ${index + 1}", "${witness.name} · ${witness.contact}")
+                }
+            }
+        }
+
+        if (application.status in setOf(LoanStatus.SUBMITTED, LoanStatus.PENDING_DOCUMENTS, LoanStatus.AWAITING_ADDITIONAL_INFO)) {
+            SectionCard(title = "Upload Documents") {
+                Text("PDF, JPEG or PNG, up to 5MB per file.", style = MaterialTheme.typography.bodySmall)
+                DocumentType.entries.forEach { type ->
+                    DocumentPickerButton(label = "Upload " + documentTypeLabel(type), enabled = !uiState.isActing,
+                        onSelected = { viewModel.uploadDocument(applicationId, type, it) }, onError = viewModel::documentError)
                 }
             }
         }

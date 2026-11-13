@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.trustbank.loanapp.data.model.DocumentUpload
 import com.trustbank.loanapp.data.model.DocumentType
 import com.trustbank.loanapp.data.model.LoanProduct
 import com.trustbank.loanapp.data.model.PaymentTerms
@@ -46,6 +47,7 @@ import com.trustbank.loanapp.ui.common.FieldState
 import com.trustbank.loanapp.ui.common.documentTypeLabel
 import com.trustbank.loanapp.ui.common.paymentTermsLabel
 import com.trustbank.loanapp.ui.common.rememberFieldState
+import com.trustbank.loanapp.ui.components.DocumentPickerButton
 import com.trustbank.loanapp.ui.components.AppDropdownField
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.BackRow
@@ -133,7 +135,7 @@ private fun ApplicationFormSteps(
     uiState: NewApplicationUiState,
     viewModel: NewApplicationViewModel,
 ) {
-    // Step 0 — applicant & business details
+    // Step 0 â€” applicant & business details
     val fullName = rememberFieldState(uiState.prefillFullName) {
         when {
             !Validators.isRequired(it) -> "Full name is required"
@@ -165,13 +167,13 @@ private fun ApplicationFormSteps(
     val businessName = rememberFieldState { if (!Validators.isRequired(it)) "Business name is required" else null }
     val businessLocation = rememberFieldState { if (!Validators.isRequired(it)) "Business location is required" else null }
 
-    // Step 1 — collateral & witnesses
+    // Step 1 â€” collateral & witnesses
     val collateral = rememberFieldState {
         if (it.trim().length < 10) "Describe the collateral security (at least 10 characters)" else null
     }
     val witnesses = remember { mutableStateListOf(WitnessFields(), WitnessFields()) }
 
-    // Step 2 — loan terms
+    // Step 2 â€” loan terms
     val amount = rememberFieldState { text ->
         val value = Validators.parseAmount(text)
         when {
@@ -247,8 +249,10 @@ private fun ApplicationFormSteps(
         )
         3 -> StepDocuments(
             attachedDocs = uiState.attachedDocs,
+            applicationSaved = uiState.applicationSaved,
             docsError = uiState.docsError,
-            onToggleDoc = viewModel::toggleDoc,
+            onAttachDoc = viewModel::attachDocument,
+            onDocError = viewModel::documentError,
             onBack = { viewModel.goToStep(2) },
             onContinue = { if (viewModel.validateStepTwo()) viewModel.goToStep(4) },
         )
@@ -267,6 +271,7 @@ private fun ApplicationFormSteps(
             purposeText = purpose.value,
             paymentTerms = paymentTerms,
             attachedCount = uiState.attachedDocs.size,
+            applicationSaved = uiState.applicationSaved,
             isSubmitting = uiState.isSubmitting,
             submitError = uiState.submitError,
             onBack = { viewModel.goToStep(3) },
@@ -308,7 +313,7 @@ private fun StepIndicator(currentStep: Int) {
             }
         }
         Text(
-            "Step ${currentStep + 1} of ${STEP_TITLES.size} · ${STEP_TITLES[currentStep]}",
+            "Step ${currentStep + 1} of ${STEP_TITLES.size} Â· ${STEP_TITLES[currentStep]}",
             style = MaterialTheme.typography.bodySmall,
             color = AppColors.Neutral500,
         )
@@ -473,8 +478,8 @@ private fun StepLoanTerms(
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SectionCard {
             Text(product.name, style = MaterialTheme.typography.titleMedium, color = AppColors.Neutral900)
-            DetailRow("Amount range", "${Formatters.ugx(product.minAmount)} – ${Formatters.ugx(product.maxAmount)}")
-            DetailRow("Period range", "${product.minTermMonths}–${product.maxTermMonths} months")
+            DetailRow("Amount range", "${Formatters.ugx(product.minAmount)} â€“ ${Formatters.ugx(product.maxAmount)}")
+            DetailRow("Period range", "${product.minTermMonths}â€“${product.maxTermMonths} months")
         }
 
         DigitsField(
@@ -526,47 +531,27 @@ private fun StepLoanTerms(
 
 @Composable
 private fun StepDocuments(
-    attachedDocs: Set<DocumentType>,
+    attachedDocs: Map<DocumentType, DocumentUpload>,
+    applicationSaved: Boolean,
     docsError: String?,
-    onToggleDoc: (DocumentType) -> Unit,
+    onAttachDoc: (DocumentType, DocumentUpload) -> Unit,
+    onDocError: (String) -> Unit,
     onBack: () -> Unit,
     onContinue: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(
-            "Confirm you have these documents ready — you can upload the actual files from the applicant portal after submitting.",
-            style = MaterialTheme.typography.bodySmall,
-            color = AppColors.Neutral500,
-        )
-
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            REQUIRED_APPLICATION_DOCS.forEach { docType ->
-                val checked = docType in attachedDocs
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onToggleDoc(docType) }
-                        .background(Color.White, RoundedCornerShape(14.dp))
-                        .border(1.dp, if (checked) AppColors.Primary600 else AppColors.Neutral200, RoundedCornerShape(14.dp))
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                ) {
-                    Checkbox(
-                        checked = checked,
-                        onCheckedChange = { onToggleDoc(docType) },
-                        colors = CheckboxDefaults.colors(checkedColor = AppColors.Primary600),
-                    )
-                    Text(documentTypeLabel(docType), style = MaterialTheme.typography.bodyMedium, color = AppColors.Neutral800)
-                }
+        Text("Attach PDF, JPEG or PNG files, up to 5MB each. Files are uploaded when you submit.",
+            style = MaterialTheme.typography.bodySmall, color = AppColors.Neutral500)
+        REQUIRED_APPLICATION_DOCS.forEach { type ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(documentTypeLabel(type), style = MaterialTheme.typography.bodyMedium)
+                DocumentPickerButton(label = attachedDocs[type]?.fileName ?: "Choose file",
+                    onSelected = { onAttachDoc(type, it) }, onError = onDocError)
             }
         }
-
-        if (docsError != null) {
-            Text(docsError, color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
-        }
-
+        if (docsError != null) Text(docsError, color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
+            SecondaryButton(text = "Back", onClick = onBack, enabled = !applicationSaved, modifier = Modifier.weight(1f))
             PrimaryButton(text = "Continue", onClick = onContinue, modifier = Modifier.weight(1f))
         }
     }
@@ -588,6 +573,7 @@ private fun StepReview(
     purposeText: String,
     paymentTerms: PaymentTerms?,
     attachedCount: Int,
+    applicationSaved: Boolean,
     isSubmitting: Boolean,
     submitError: String?,
     onBack: () -> Unit,
@@ -605,16 +591,16 @@ private fun StepReview(
         SectionCard(title = "Collateral & Witnesses") {
             DetailRow("Collateral security", collateral)
             witnesses.forEachIndexed { index, witness ->
-                DetailRow("Witness ${index + 1}", "${witness.name.value} · ${witness.contact.value}")
+                DetailRow("Witness ${index + 1}", "${witness.name.value} Â· ${witness.contact.value}")
             }
         }
         SectionCard(title = "Loan Terms") {
             DetailRow("Product", product.name)
             DetailRow("Amount", "UGX $amountText")
             DetailRow("Period", "$periodText months")
-            DetailRow("Terms of payment", paymentTerms?.let(::paymentTermsLabel) ?: "—")
+            DetailRow("Terms of payment", paymentTerms?.let(::paymentTermsLabel) ?: "â€”")
             DetailRow("Purpose", purposeText)
-            DetailRow("Documents ready", "$attachedCount of ${REQUIRED_APPLICATION_DOCS.size}")
+            DetailRow("Files attached", "$attachedCount of ${REQUIRED_APPLICATION_DOCS.size}")
         }
 
         if (submitError != null) {
@@ -622,8 +608,9 @@ private fun StepReview(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(text = "Back", onClick = onBack, modifier = Modifier.weight(1f))
-            PrimaryButton(text = "Submit application", isLoading = isSubmitting, onClick = onSubmit, modifier = Modifier.weight(1f))
+            SecondaryButton(text = "Back", onClick = onBack, enabled = !isSubmitting, modifier = Modifier.weight(1f))
+            PrimaryButton(text = if (applicationSaved) "Finish uploading" else "Submit application",
+                isLoading = isSubmitting, onClick = onSubmit, modifier = Modifier.weight(1f))
         }
     }
 }
