@@ -4,7 +4,7 @@ Updated: 2026-11-13 (Africa/Kampala).
 
 ## Repository merge
 
-- Imported the React dashboard into `web/` and the bundle's mobile API changes into the root `app/` project.
+- Imported the React dashboard into `web/` and the bundle's mobile API changes into the `mobile/app/` project.
 - Existing `backend/` was identical to the bundle; retained it and added targeted protection/tests.
 - Kept Android visuals, Reviden updates, package/version identity, signing setup and existing local files.
 - Added Gradle wrapper scripts/jar; pinned Gradle 8.6 for Android plugin 8.4.2. Added Maven 3.9.9 wrapper.
@@ -38,3 +38,13 @@ Updated: 2026-11-13 (Africa/Kampala).
 - Durable background processing, reliable hosted scheduling, and rollback/crash tests remain future checks.
 
 The implementation for the six coursework concepts is present. The unit and Neon API checks cover database races, but are not proof of deployed TLS, crash recovery or full client/API interoperability. See `docs/TASKS-COVERAGE.md` for evidence and remaining checks, `DEPLOYMENT.md` for environment setup, and `docs/MOBILE.md` for known mobile limitations.
+
+## Learning layout and component branches
+
+- Android source, Gradle files, SDK settings and signing material now live under `mobile/`; React stays in `web/` and Spring Boot in `backend/`.
+- `main` is the complete monorepo. `web`, `mobile` and `backend` are folder-only snapshots with component-specific CI; existing histories are preserved with forward commits.
+- Restored the old main branch's diagrams, project plan and reference documents to the monorepo.
+- Updated build paths and Vercel branch/root-directory instructions. Real Neon credentials and Android signing files remain ignored.
+- See `docs/REPOSITORY-LAYOUT.md` for safe folder synchronization between the focused branches and main.
+
+- Relocated Android verification passed from `mobile/`: debug APK built successfully with the existing Gradle 9.7.1 wrapper; the unit-test task reports NO-SOURCE. Backend and React source paths are unchanged.

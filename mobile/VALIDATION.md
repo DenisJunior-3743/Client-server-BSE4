@@ -2,7 +2,7 @@
 
 Every form field in the app is validated client-side. In API mode the backend also validates requests.
 This document is a map of *where* each rule lives, for explaining the
-code. All paths are relative to this branch's root (`app/src/main/java/com/trustbank/loanapp/...`).
+code. All paths are relative to the `mobile/` project root (`app/src/main/java/com/trustbank/loanapp/...`).
 
 ## 1. The two-layer architecture
 

@@ -16,7 +16,7 @@ local.properties
 # Back this up somewhere safe outside git (integration.md: the same key
 # must be reused for every future release, or updates break for everyone
 # who already installed the app).
-/keystore/
+**/keystore/
 
 hs_err_pid*.log
 replay_pid*.log
@@ -36,3 +36,11 @@ tmp/
 # Python validation-script caches
 __pycache__/
 *.py[cod]
+
+# Android signing files remain local after folder reorganization
+*.jks
+*.keystore
+**/releases/
+
+# Legacy root wrapper held open by the old Android Studio project
+/gradle/

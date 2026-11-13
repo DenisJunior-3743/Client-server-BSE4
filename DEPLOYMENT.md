@@ -1,13 +1,14 @@
 # Run and deploy TrustBank Loans
 
-The Android app is at the repository root, the dashboard is in `web/`, and the API is in `backend/`. No branch switching or bundle patches are needed. Verified checks and remaining work are in `PROGRESS.md`.
+The Android app is in `mobile/`, the dashboard is in `web/`, and the API is in `backend/`. No branch switching or bundle patches are needed. Verified checks and remaining work are in `PROGRESS.md`.
 
 ## 1. Build without a database
 
-Use Java 21 for the backend; Java 17 or 21 and Android SDK 34 for Android. Set `JAVA_HOME` to the installed JDK and keep the SDK path in ignored `local.properties`.
+Use Java 21 for the backend; Java 17 or 21 and Android SDK 34 for Android. Set `JAVA_HOME` to the installed JDK and keep the SDK path in ignored `mobile/local.properties`.
 
 ```powershell
-# Repository root
+# Inside mobile/
+cd mobile
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest
 cd web
 npm ci
@@ -19,7 +20,7 @@ cd ..\backend
 
 For local credentials already stored in ignored `backend/.env`, use `.\backend\scripts\run-local.ps1` from the repo root (add `-Action Test` or `-Action Package` for those commands). Direct Maven commands still require exported variables.
 
-The Maven wrapper downloads Maven 3.9.9. Gradle is pinned to 8.6 for Android plugin 8.4.2. On Unix use `./gradlew` and `./mvnw` (make them executable if necessary).
+The Maven wrapper downloads Maven 3.9.9. The checked-in Gradle wrapper uses 9.7.1 for Android plugin 8.4.2. On Unix use `./gradlew` and `./mvnw` (make them executable if necessary).
 
 ## 2. Database environment
 
@@ -59,7 +60,7 @@ Run `npm run dev` and open `http://localhost:5173`. Without this variable, the d
 
 ## 4. Connect Android
 
-Open the repository root in Android Studio, sync, then build from the root:
+Open `mobile/` in Android Studio, sync, then build inside `mobile/`:
 
 ```powershell
 .\gradlew.bat installDebug -PapiBaseUrl=http://10.0.2.2:8080/
@@ -89,13 +90,13 @@ Build the backend with `backend/mvnw.cmd package` (or `./mvnw package` on Unix).
 
 Set `SPRING_PROFILES_ACTIVE=prod`, a strong persistent `JWT_SECRET`, real database variables and the dashboard's exact HTTPS origin in `CORS_ALLOWED_ORIGINS`. Terminate TLS with the reverse proxy. Templates for systemd, nginx and environment variables are under `backend/deploy/`. Only trust forwarded headers from your reverse proxy; do not expose the API's internal HTTP port publicly. Production requests require HTTPS.
 
-Build the dashboard with `npm run build` in `web/` using its deployed `VITE_API_URL`, and serve `web/dist/` with SPA fallback. Build Android from the root with:
+Build the dashboard with `npm run build` in `web/` using its deployed `VITE_API_URL`, and serve `web/dist/` with SPA fallback. Build Android inside `mobile/` with:
 
 ```powershell
 .\gradlew.bat assembleRelease -PapiBaseUrl=https://api.<your-domain>/
 ```
 
-The existing ignored `keystore/keystore.properties` supplies release signing. Preserve the package name and signing key for updates; increment `versionCode` when publishing a new APK. See `integration.md` for Reviden Store update behavior.
+The existing ignored `mobile/keystore/keystore.properties` supplies release signing. Preserve the package name and signing key for updates; increment `versionCode` when publishing a new APK. See `mobile/integration.md` for Reviden Store update behavior.
 
 ## Windows Java loopback troubleshooting
 

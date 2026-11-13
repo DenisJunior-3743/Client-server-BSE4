@@ -17,7 +17,13 @@ Progress, the course-concept mapping and next steps are in [PROGRESS.md](PROGRES
 | API description | OpenAPI via springdoc (`/swagger-ui.html`) |
 | Build | Maven |
 
+## Folder and branch
+
+This project is in `backend/` on the complete `main` monorepo and the focused `backend` branch. Enter that folder before running Maven. For the beginner architecture and Swagger guide, see the [guide on main](https://github.com/DenisJunior-3743/Client-server-BSE4/blob/main/docs/SPRING-BOOT-GUIDE.md).
+
 ## Run it locally
+
+If your private `backend/.env` is already configured, run `.\scripts\run-local.ps1` from this folder. Otherwise follow these steps:
 
 1. Create a database. Either a Neon project, or local PostgreSQL:
    ```

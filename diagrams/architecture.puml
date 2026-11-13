@@ -1,0 +1,138 @@
+@startuml architecture
+!pragma layout smetana
+title Bank Loan Application System - High-Level Architecture
+
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam wrapWidth 200
+skinparam defaultTextAlignment center
+skinparam component {
+  BackgroundColor #EAF2FB
+  BorderColor #2E5C8A
+  FontSize 13
+}
+skinparam database {
+  BackgroundColor #FDF2E3
+  BorderColor #A9661D
+}
+skinparam queue {
+  BackgroundColor #EDE7F6
+  BorderColor #5E35B1
+}
+skinparam cloud {
+  BackgroundColor #F1F8E9
+  BorderColor #558B2F
+}
+skinparam node {
+  BackgroundColor #FAFAFA
+  BorderColor #616161
+}
+skinparam ArrowColor #37474F
+skinparam ArrowFontSize 11
+
+actor "Borrower" as borrower
+actor "Loan Officer /\nCredit Analyst /\nBranch Manager" as staff
+
+node "Mobile Client (Android)" as mobile {
+  [Kotlin App\n(Jetpack Compose, Retrofit,\nOkHttp WebSocket client)] as mobileApp
+}
+
+node "Web Client (PC)" as web {
+  [Bank Dashboard\n(React + TypeScript,\nSTOMP over SockJS)] as webApp
+}
+
+cloud "Spring Boot Application (Modular Monolith)" as backend {
+
+  package "API / Presentation Layer" {
+    [Auth Controller\n(JWT login/refresh)] as authCtrl
+    [Loan Application\nController] as loanCtrl
+    [Document Controller] as docCtrl
+    [Admin / Staff\nController] as adminCtrl
+    [WebSocket Endpoint\n(STOMP /topic/loans)] as wsEndpoint
+  }
+
+  package "Security" {
+    [Spring Security\n+ JWT Filter Chain] as security
+  }
+
+  package "Service / Domain Layer" {
+    [Loan Application\nService] as appService
+    [Credit Check\nService] as creditService
+    [Approval\nService] as approvalService
+    [Disbursement\nService] as disburseService
+    [Notification\nService] as notifyService
+    [Loan Workflow\nState Machine\n(Spring Statemachine)] as stateMachine
+  }
+
+  package "Messaging" {
+    [Event Publisher] as publisher
+    [Event Listeners /\nBackground Workers] as listeners
+  }
+
+  package "Persistence Layer" {
+    [Spring Data JPA\nRepositories] as repos
+  }
+}
+
+queue "RabbitMQ\n(loan.events exchange:\nLoanSubmitted, DocumentUploaded,\nCreditCheckCompleted, DecisionMade)" as mq
+
+database "PostgreSQL\n(applicants, loan_applications,\ndocuments (JSONB), credit_checks,\napprovals, disbursements, audit_log)" as db
+
+cloud "External Services\n(mocked/stubbed for coursework)" as ext {
+  [Credit Bureau API] as bureau
+  [Email / SMS Gateway] as gateway
+}
+
+' -- Client to API --
+mobileApp -down-> authCtrl : HTTPS / REST (JWT)
+mobileApp -down-> loanCtrl : HTTPS / REST (JWT)
+mobileApp -down-> docCtrl : HTTPS / REST (JWT)
+mobileApp ..down..> wsEndpoint : WSS (status push)
+
+webApp -down-> authCtrl : HTTPS / REST (JWT)
+webApp -down-> adminCtrl : HTTPS / REST (JWT)
+webApp -down-> loanCtrl : HTTPS / REST (JWT)
+webApp ..down..> wsEndpoint : WSS (real-time dashboard)
+
+' -- Security --
+authCtrl .down.> security
+loanCtrl .down.> security
+docCtrl .down.> security
+adminCtrl .down.> security
+
+' -- Controllers to Services --
+loanCtrl -down-> appService
+docCtrl -down-> appService
+adminCtrl -down-> approvalService
+
+' -- Services orchestrate workflow --
+appService -down-> stateMachine
+approvalService -down-> stateMachine
+disburseService -down-> stateMachine
+
+appService -right-> publisher
+creditService -right-> publisher
+approvalService -right-> publisher
+disburseService -right-> publisher
+
+publisher -down-> mq : publish events
+mq -down-> listeners : consume events
+
+listeners -down-> creditService
+listeners -down-> notifyService
+notifyService -up-> wsEndpoint : push status update
+notifyService -down-> gateway : email / SMS (stub)
+creditService -down-> bureau : credit score check (stub)
+
+' -- Persistence --
+appService -down-> repos
+creditService -down-> repos
+approvalService -down-> repos
+disburseService -down-> repos
+stateMachine -down-> repos
+repos -down-> db
+
+borrower -down-> mobileApp
+staff -down-> webApp
+
+@enduml

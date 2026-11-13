@@ -1,6 +1,10 @@
 # TrustBank Loans — Web Dashboard (Task 1)
 
-React + TypeScript staff dashboard for the Bank Loan Application System. Covers the web side of Task 1: full UI + client-side validation, running entirely on **in-memory mock data** (`src/mocks/data.ts`) — no backend yet.
+React + TypeScript staff dashboard for the Bank Loan Application System. Includes staff screens, client-side validation, and HTTP integration with the Spring Boot API. Without an API URL it uses **in-memory mock data** (`src/mocks/data.ts`).
+
+## Folder and branch
+
+The project is in `web/` on both `main` (the complete monorepo) and `web` (the focused React branch). Enter `web/` before running the commands below. For Vercel use Root Directory `web`, the Vite preset and output directory `dist`; set `VITE_API_URL` to the backend's HTTPS URL at build time.
 
 ## Getting started
 

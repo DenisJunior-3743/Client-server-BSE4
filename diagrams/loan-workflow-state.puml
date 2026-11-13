@@ -1,0 +1,60 @@
+@startuml loan-workflow-state
+title Loan Application Workflow - State Diagram
+
+skinparam backgroundColor #FFFFFF
+skinparam state {
+  BackgroundColor #EAF2FB
+  BorderColor #2E5C8A
+  FontSize 12
+}
+skinparam ArrowColor #37474F
+
+[*] --> Draft : borrower starts application (mobile)
+
+Draft --> Submitted : borrower submits\n(LoanSubmitted event)
+
+state "Document Verification" as DocVerify {
+  Submitted --> PendingDocuments : missing / unclear docs
+  PendingDocuments --> Submitted : borrower re-uploads\n(DocumentUploaded event)
+}
+
+Submitted --> DocumentsRejected : docs invalid
+DocumentsRejected --> [*] : applicant notified
+
+Submitted --> CreditCheckPending : docs verified\n(async worker)
+
+state "Automated Credit Check" as CreditCheck {
+  CreditCheckPending --> CreditCheckFailed : score below threshold
+  CreditCheckPending --> CreditCheckPassed : score acceptable\n(CreditCheckCompleted event)
+}
+
+CreditCheckFailed --> Rejected
+CreditCheckPassed --> UnderReview : queued for\nLoan Officer / Committee
+
+state UnderReview {
+  UnderReview --> AwaitingAdditionalInfo : officer requests more info
+  AwaitingAdditionalInfo --> UnderReview : borrower responds
+}
+
+UnderReview --> Approved : officer / committee approves\n(DecisionMade event)
+UnderReview --> Rejected : officer / committee declines
+
+Approved --> PendingDisbursement : approval finalized
+PendingDisbursement --> Disbursed : funds released\n(DisbursementCompleted event)
+
+Disbursed --> Active : repayment schedule begins
+
+state Active {
+  Active --> Active : repayment received\n(on schedule)
+  Active --> Delinquent : missed payment
+  Delinquent --> Active : payment caught up
+}
+
+Active --> Closed : fully repaid
+Delinquent --> Defaulted : prolonged non-payment
+
+Rejected --> [*]
+Closed --> [*]
+Defaulted --> [*]
+
+@enduml

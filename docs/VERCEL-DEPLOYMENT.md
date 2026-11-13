@@ -1,6 +1,6 @@
 # Deploy the Spring Boot backend with Neon on Vercel
 
-The repository now contains the full system on the `mobile` branch. Use that branch when importing this backend; the existing `backend` branch still contains the older placeholder. No branch has been force-pushed or merged into `main` as part of this setup.
+The complete monorepo is on `main`. The `backend` branch contains only `backend/` and basic repo support files. Deploy from either branch with Root Directory `backend`. The `mobile` branch now contains only Kotlin code.
 
 ## Local credentials
 
@@ -20,7 +20,7 @@ The app uses a direct Neon hostname, a JDBC URL, separate database username/pass
 Vercel's Container Runtime is in beta and builds OCI images from a Dockerfile. This repo supplies `backend/Dockerfile` and `backend/vercel.json` for that path. [Container Runtime documentation](https://vercel.com/docs/functions/runtimes/container).
 
 1. In Vercel create a project from `DenisJunior-3743/Client-server-BSE4`.
-2. Select the `mobile` branch; set the production branch to `mobile` in Git settings if it defaults to `main`.
+2. Select the `backend` branch for a backend-only deployment, or `main` for the complete monorepo. Set the production branch accordingly in Git settings.
 3. Set **Root Directory** to `backend`.
 4. Select the **Container** framework preset. Keep build and output overrides unset so the Dockerfile controls the build.
 5. Add the variables below in Vercel's project environment settings before deployment. Use a dedicated preview Neon branch for preview deployments so they do not share production writes.
@@ -53,7 +53,7 @@ Flyway uses a separate connection with longer migration timeouts; ordinary reque
 
 For a cross-platform development workflow check, run `python backend/scripts/smoke-test.py` against your local dev API. It creates test records and checks actual concurrent submissions and approvals.
 
-For the React project use root `web`, Vite build `npm run build`, output `dist`, and `VITE_API_URL=https://<backend-domain>`. Redeploy after changing that build-time variable. For Android build from the repo root with `-PapiBaseUrl=https://<backend-domain>/`.
+For the React project use root `web`, Vite build `npm run build`, output `dist`, and `VITE_API_URL=https://<backend-domain>`. Redeploy after changing that build-time variable. For Android build from `mobile/` with `-PapiBaseUrl=https://<backend-domain>/`.
 
 ## Runtime limitation
 
