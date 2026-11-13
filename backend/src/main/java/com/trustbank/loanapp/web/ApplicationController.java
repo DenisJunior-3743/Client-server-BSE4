@@ -10,7 +10,6 @@ import com.trustbank.loanapp.service.RepaymentService;
 import com.trustbank.loanapp.web.dto.LoanDtos.ApplicationDetailDto;
 import com.trustbank.loanapp.web.dto.LoanDtos.ApplicationDto;
 import com.trustbank.loanapp.web.dto.LoanDtos.DocumentDto;
-import com.trustbank.loanapp.web.dto.LoanDtos.DocumentRequest;
 import com.trustbank.loanapp.web.dto.LoanDtos.InfoResponseRequest;
 import com.trustbank.loanapp.web.dto.LoanDtos.RepaymentReceiptDto;
 import com.trustbank.loanapp.web.dto.LoanDtos.RepaymentRequest;
@@ -80,14 +79,6 @@ public class ApplicationController {
     @GetMapping("/{id}/schedule")
     public List<ScheduleItemDto> schedule(@CurrentUser AuthUser user, @PathVariable UUID id) {
         return loans.schedule(user, id);
-    }
-
-    @PostMapping("/{id}/documents")
-    @PreAuthorize("hasRole('BORROWER')")
-    @ResponseStatus(HttpStatus.CREATED)
-    public DocumentDto addDocument(@CurrentUser AuthUser user, @PathVariable UUID id,
-            @Valid @RequestBody DocumentRequest request) {
-        return loans.addDocument(user.id(), id, request);
     }
 
     @PostMapping("/{id}/info-response")

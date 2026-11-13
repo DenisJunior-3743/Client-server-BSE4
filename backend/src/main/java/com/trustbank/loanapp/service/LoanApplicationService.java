@@ -24,7 +24,6 @@ import com.trustbank.loanapp.web.dto.DtoMapper;
 import com.trustbank.loanapp.web.dto.LoanDtos.ApplicationDetailDto;
 import com.trustbank.loanapp.web.dto.LoanDtos.ApplicationDto;
 import com.trustbank.loanapp.web.dto.LoanDtos.DocumentDto;
-import com.trustbank.loanapp.web.dto.LoanDtos.DocumentRequest;
 import com.trustbank.loanapp.web.dto.LoanDtos.ScheduleItemDto;
 import com.trustbank.loanapp.web.dto.LoanDtos.SubmitApplicationRequest;
 import java.time.Clock;
@@ -128,30 +127,6 @@ public class LoanApplicationService {
         application.setStatus(null);                       // so the history row reads "(start) -> SUBMITTED"
         stateMachine.move(application, LoanStatus.SUBMITTED, borrowerId, null);
         return DtoMapper.applicationForBorrower(application);
-    }
-
-    @Transactional
-    public DocumentDto addDocument(UUID borrowerId, UUID applicationId, DocumentRequest request) {
-        LoanApplication application = ownApplication(borrowerId, applicationId);
-        Set<LoanStatus> open = Set.of(LoanStatus.SUBMITTED, LoanStatus.PENDING_DOCUMENTS,
-                LoanStatus.AWAITING_ADDITIONAL_INFO);
-        if (!open.contains(application.getStatus())) {
-            throw ApiException.rule("DOCUMENTS_CLOSED", "Documents can no longer be added to this application");
-        }
-        LoanDocument document = new LoanDocument();
-        document.setLoanApplicationId(applicationId);
-        document.setDocType(request.docType());
-        document.setFileName(request.fileName().trim());
-        document.setContentType(request.contentType());
-        document.setSizeBytes(request.sizeBytes());
-        document.setUploadedAt(clock.instant());
-        document = documents.save(document);
-
-        // Re-upload after a "pending documents" request puts the file back in the officer's queue.
-        if (application.getStatus() == LoanStatus.PENDING_DOCUMENTS) {
-            stateMachine.move(application, LoanStatus.SUBMITTED, borrowerId, "Borrower uploaded " + request.docType());
-        }
-        return DtoMapper.document(document);
     }
 
     @Transactional

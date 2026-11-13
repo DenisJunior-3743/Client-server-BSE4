@@ -59,6 +59,12 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- GridFS file bytes; loan/account records remain in PostgreSQL. -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+        </dependency>
+
         <!-- JWT (authentication duty, Comer 2.3.2) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

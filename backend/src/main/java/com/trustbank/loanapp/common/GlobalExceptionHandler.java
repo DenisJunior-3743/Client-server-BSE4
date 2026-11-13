@@ -112,7 +112,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiError> mediaType(HttpMediaTypeNotSupportedException ex, HttpServletRequest req) {
         return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE",
-                "Content-Type must be application/json", req);
+                "Use the Content-Type required by this endpoint (JSON or multipart/form-data)", req);
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> oversizedUpload(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "Files must be PDF/JPG/PNG under 5MB", req);
+    }
+
+    @ExceptionHandler({org.springframework.web.multipart.support.MissingServletRequestPartException.class,
+            org.springframework.web.multipart.MultipartException.class})
+    public ResponseEntity<ApiError> malformedUpload(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "INVALID_UPLOAD", "Send multipart/form-data with docType and file parts", req);
     }
 
     @ExceptionHandler(Exception.class)

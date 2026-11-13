@@ -58,7 +58,10 @@ spring:
 
   servlet:
     multipart:
-      enabled: false               # documents are registered as metadata for now
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 6MB
+      file-size-threshold: 0
 
 server:
   port: ${PORT:8080}
@@ -78,7 +81,7 @@ server:
     connection-timeout: 10s        # a slow/dead client cannot pin a worker forever
     keep-alive-timeout: 15s
     max-swallow-size: 1MB
-    max-http-form-post-size: 64KB
+    max-http-form-post-size: 6MB
 
 management:
   endpoints:
@@ -96,6 +99,14 @@ springdoc:
     path: /swagger-ui.html
 
 app:
+  documents:
+    mongodb-uri: ${MONGODB_URI:}
+    database: ${MONGODB_DATABASE:trustbank_documents}
+    bucket: ${MONGODB_GRIDFS_BUCKET:loan_documents}
+  bootstrap-admin:
+    enabled: ${BOOTSTRAP_ADMIN_ENABLED:true}
+    email: ${BOOTSTRAP_ADMIN_EMAIL:admin@bank.com}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:Admin123}
   jwt:
     # HS256 key, at least 32 bytes. ALWAYS override JWT_SECRET outside local dev.
     secret: ${JWT_SECRET:dev-only-secret-change-me-please-32-bytes-min}
@@ -138,7 +149,7 @@ spring:
 app:
   otp:
     dev-echo: true
-  seed-demo-data: true
+  seed-demo-data: ${SEED_DEMO_DATA:false}
 logging:
   level:
     com.trustbank.loanapp: DEBUG
