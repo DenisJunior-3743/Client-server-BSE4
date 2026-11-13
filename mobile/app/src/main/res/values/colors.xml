@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bank-blue brand primary — see ui/theme/Color.kt AppColors.Primary600 -->
+    <color name="primary_600">#0055B8</color>
+    <color name="neutral_900">#0F172A</color>
+    <color name="white">#FFFFFF</color>
+</resources>

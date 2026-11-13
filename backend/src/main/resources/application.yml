@@ -1,0 +1,153 @@
+spring:
+  application:
+    name: loan-backend
+  profiles:
+    default: dev
+
+  datasource:
+    # Neon: use the DIRECT (non "-pooler") host. HikariCP below is our pool, and the
+    # per-connection timeouts in connection-init-sql need a real session.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/loans}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    hikari:
+      # --- Socket pre-allocation (Comer ch. 3 / CS423) -------------------------
+      # TCP+TLS connections to Neon are opened once and reused, so a request never
+      # pays connection set-up (the high-variance part of a cloud database call).
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:4}
+      # A request thread waits at most 3 s for a connection, then fails fast (503)
+      # instead of queueing forever -> no server deadlock on pool exhaustion.
+      connection-timeout: 3000
+      idle-timeout: 300000
+      max-lifetime: 1500000
+      keepalive-time: 120000
+      pool-name: loan-hikari
+      # Bounded waits inside PostgreSQL itself: never wait on a row lock > 3 s,
+      # never run one statement > 8 s (soft deadline for every query).
+      connection-init-sql: "SET lock_timeout = '3s'; SET statement_timeout = '8s'; SET idle_in_transaction_session_timeout = '15s'"
+
+  jpa:
+    open-in-view: false            # release the DB connection before the reply is marshalled
+    hibernate:
+      ddl-auto: none               # Flyway owns the schema
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+          batch_size: 50
+        order_inserts: true
+
+  flyway:
+    enabled: true
+    # Migrations use their own connections: request-pool idle/statement limits can
+    # interrupt a schema migration over a remote Neon connection.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/loans}
+    user: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    init-sqls:
+      - "SET lock_timeout = '10s'; SET statement_timeout = '120s'; SET idle_in_transaction_session_timeout = '120s'"
+    locations: classpath:db/migration
+
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: true
+    serialization:
+      write-dates-as-timestamps: false
+
+  servlet:
+    multipart:
+      enabled: false               # documents are registered as metadata for now
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework   # TLS terminates at the host/proxy; trust X-Forwarded-*
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+  tomcat:
+    # --- Thread pool model (CS423): workers are pre-created and reused, never
+    # one fork()/thread per request. ----------------------------------------
+    threads:
+      max: ${HTTP_THREADS_MAX:50}
+      min-spare: ${HTTP_THREADS_MIN:10}
+    accept-count: 100              # listen backlog once every worker is busy
+    max-connections: 2000
+    connection-timeout: 10s        # a slow/dead client cannot pin a worker forever
+    keep-alive-timeout: 15s
+    max-swallow-size: 1MB
+    max-http-form-post-size: 64KB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  jwt:
+    # HS256 key, at least 32 bytes. ALWAYS override JWT_SECRET outside local dev.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32-bytes-min}
+    access-token-ttl: 60m
+    issuer: trustbank-loans
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  security:
+    require-https: ${REQUIRE_HTTPS:false}
+    max-json-body-bytes: 65536
+    rate-limit:
+      requests-per-minute: 120
+      auth-requests-per-minute: 10
+  otp:
+    ttl: 5m                        # FIRM deadline
+    max-attempts: 5
+    dev-echo: false                # true => code is returned in the API reply (local demo only)
+  offer:
+    acceptance-window: 72h         # FIRM deadline
+  idempotency:
+    ttl: 24h
+  credit:
+    pass-score: 600
+    bureau-latency: 1500ms         # simulated latency of the (stubbed) credit bureau
+  async:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 200
+  seed-demo-data: false
+
+logging:
+  level:
+    com.trustbank.loanapp: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+app:
+  otp:
+    dev-echo: true
+  seed-demo-data: true
+logging:
+  level:
+    com.trustbank.loanapp: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+app:
+  security:
+    require-https: true
