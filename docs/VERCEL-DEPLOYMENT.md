@@ -34,8 +34,10 @@ Vercel's file/project settings control the preset and build behavior. [Project c
 | `DATABASE_PASSWORD` | Private `.env` database password |
 | `JWT_SECRET` | A strong persistent secret; your private `.env` has a generated one |
 | `SPRING_PROFILES_ACTIVE` | `prod` |
-| `CORS_ALLOWED_ORIGINS` | Your React dashboard's exact HTTPS origin, without a trailing slash |
+| `CORS_ALLOWED_ORIGINS` | `https://client-server-bse-4.vercel.app` |
 | `PORT` | `8080` |
+
+`CORS_ALLOWED_ORIGINS` overrides the application default list. If already set on your backend host, add `https://client-server-bse-4.vercel.app` to its comma-separated values and redeploy the backend. Use origins without a trailing slash.
 
 The Neon integration may already have provided a variable named `DATABASE_URL`. Override that value **in this backend project** with the JDBC version, and add the separately named user/password variables. Do not change another project's connection variables.
 
