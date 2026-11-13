@@ -1,14 +1,12 @@
-# Backend
+# TrustBank Loans - Java Spring Boot API
 
-Placeholder for the Client-Server BSE4 backend API (Phase 2+).
+This focused branch contains only `backend/` and basic repository/CI support files. The `main` branch contains all three components together.
 
-Per the project plan (see the `docs` branch, `PROJECT-PLAN.md`):
+```powershell
+cd backend
+.\scripts\run-local.ps1
+```
 
-- **Framework:** Java Spring Boot (modular monolith)
-- **Database:** PostgreSQL
-- **Auth:** Spring Security + JWT
-- **Workflow:** Spring Statemachine for loan status transitions
-- **Async/events:** RabbitMQ + WebSocket push for live status/dashboard updates
+Read [the component guide](backend/README.md). Build and deployment roots stay inside `backend/`.
 
-Task 1 (web + mobile) runs entirely on mock data behind a thin API abstraction, so this backend
-is not yet required to build those clients. This branch is a placeholder until Phase 2 work starts.
+For the full system and safe folder synchronization, see [the layout guide on main](https://github.com/DenisJunior-3743/Client-server-BSE4/blob/main/docs/REPOSITORY-LAYOUT.md). These focused branches should transfer only their component folder back to main, rather than merging the whole reduced tree.
