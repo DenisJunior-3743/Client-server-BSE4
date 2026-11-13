@@ -9,4 +9,4 @@ cd mobile
 
 Read [the component guide](mobile/README.md). Build and deployment roots stay inside `mobile/`.
 
-For the full system and safe folder synchronization, see [the layout guide on main](https://github.com/DenisJunior-3743/Client-server-BSE4/blob/main/docs/REPOSITORY-LAYOUT.md). These focused branches should transfer only their component folder back to main, rather than merging the whole reduced tree.
+For the full system and safe folder synchronization, see [the layout guide on main](https://github.com/DenisJunior-3743/Client-server-BSE4/blob/main/docs/REPOSITORY-LAYOUT.md). After the initial snapshot merge is reconciled, commit changes inside mobile/ and open a normal pull request into main. To refresh this focused branch from main, copy only mobile/ as explained in the layout guide.
