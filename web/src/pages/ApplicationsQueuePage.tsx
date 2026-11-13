@@ -1,3 +1,4 @@
+import { LoadError } from '@/components/ui/LoadError'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Inbox } from 'lucide-react'
@@ -21,6 +22,7 @@ interface ApplicationsQueuePageProps {
 
 export function ApplicationsQueuePage({ title, description, filter, emptyMessage }: ApplicationsQueuePageProps) {
   const [applications, setApplications] = useState<LoanApplication[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const navigate = useNavigate()
   const loanProducts = useProducts()
 
@@ -30,14 +32,15 @@ export function ApplicationsQueuePage({ title, description, filter, emptyMessage
       .then((data) => {
         if (active) setApplications(filter(data))
       })
-      .catch(() => {
-        if (active) setApplications([])
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Unable to load applications')
       })
     return () => {
       active = false
     }
   }, [filter])
 
+  if (loadError) return <LoadError message={loadError} />
   if (!applications) return <PageSpinner />
 
   return (

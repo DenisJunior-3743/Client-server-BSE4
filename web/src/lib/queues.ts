@@ -1,22 +1,14 @@
-import { documents } from '@/mocks/data'
 import type { LoanApplication, LoanStatus } from '@/types'
 
-// Composite queue filters used by the ApplicationsQueuePage instances in
-// App.tsx — kept here (rather than inline) because a couple of them need to
-// cross-reference the documents collection, not just the application itself.
+// Queue filters use status and pending counts returned by the backend.
 export const officerNewFilter = (apps: LoanApplication[]) => apps.filter((a) => a.status === 'SUBMITTED' && !a.assignedOfficerId)
 
 export const officerInReviewFilter = (apps: LoanApplication[]) => apps.filter((a) => a.status === 'SUBMITTED' && !!a.assignedOfficerId)
 
 export const officerInfoRequestsFilter = (apps: LoanApplication[]) => apps.filter((a) => a.status === 'AWAITING_ADDITIONAL_INFO')
 
-// The real API reports `pendingDocuments` on each application; mock mode looks it up locally.
 export const analystVerificationFilter = (apps: LoanApplication[]) =>
-  apps.filter((a) =>
-    a.pendingDocuments !== undefined
-      ? a.pendingDocuments > 0
-      : documents.some((d) => d.loanApplicationId === a.id && d.verificationStatus === 'PENDING'),
-  )
+  apps.filter((a) => (a.pendingDocuments ?? 0) > 0)
 
 export const analystCreditAssessmentFilter = (apps: LoanApplication[]) => apps.filter((a) => a.status === 'CREDIT_CHECK_PENDING')
 

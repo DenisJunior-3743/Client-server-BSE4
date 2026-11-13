@@ -1,3 +1,4 @@
+import { LoadError } from '@/components/ui/LoadError'
 import { useEffect, useState } from 'react'
 import { ScrollText } from 'lucide-react'
 import { listAuditLog } from '@/api/audit'
@@ -17,11 +18,13 @@ function toneForAction(action: string) {
 
 export default function AuditLogPage() {
   const [entries, setEntries] = useState<AuditLogEntry[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    listAuditLog().then(setEntries)
+    listAuditLog().then(setEntries).catch((error: unknown) => setLoadError(error instanceof Error ? error.message : 'Unable to load data'))
   }, [])
 
+  if (loadError) return <LoadError message={loadError} />
   if (!entries) return <PageSpinner />
 
   return (

@@ -64,7 +64,7 @@ export function setDocumentStatus(
   })
 }
 
-// The officer is taken from the token on the server; `_officerId` only exists to match the mock signature.
+// The server takes the officer identity from the signed-in user token.
 export function assignToMe(id: string, _officerId: string, version?: number): Promise<LoanApplication> {
   return request<LoanApplication>(`/api/v1/applications/${id}/assign`, {
     method: 'POST',

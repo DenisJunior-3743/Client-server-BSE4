@@ -1,50 +1,30 @@
-# TrustBank Loans — Web Dashboard (Task 1)
+# TrustBank web dashboard
 
-React + TypeScript staff dashboard for the Bank Loan Application System. Includes staff screens, client-side validation, and HTTP integration with the Spring Boot API. Without an API URL it uses **in-memory mock data** (`src/mocks/data.ts`).
+React and TypeScript staff dashboard backed by the Spring Boot API. All sign-in, staff, product, loan and audit data comes from the backend. There is no mock-data fallback or offline demo sign-in.
 
-## Folder and branch
+## Run and deploy
 
-The project is in `web/` on both `main` (the complete monorepo) and `web` (the focused React branch). Enter `web/` before running the commands below. For Vercel use Root Directory `web`, the Vite preset and output directory `dist`; set `VITE_API_URL` to the backend's HTTPS URL at build time.
+1. Copy `.env.example` to `.env` and set `VITE_API_URL` to your backend origin (for local development, `http://localhost:8080`).
+2. Run `npm ci` and `npm run dev`.
+3. For Vercel, select root directory `web`, Vite preset and output `dist`. Set `VITE_API_URL` in the web project's environment before building/redeploying.
 
-## Getting started
+If the API is not configured or unavailable, the app reports an error instead of signing into sample data. Old stored demo accounts without a JWT are discarded. Use accounts created by the backend; the initial administrator is documented in [the backend setup guide](../backend/GRIDFS-SETUP.md).
 
-```
-npm install
-npm run dev
-```
+## Staff workspaces
 
-Then open the printed local URL (defaults to http://localhost:5173).
+| Role | Visible workspaces |
+|---|---|
+| Admin | All four workspaces and the bank-wide overview |
+| Loan officer | Loan Officer |
+| Credit analyst | Credit Analyst |
+| Branch manager | Branch Manager |
 
-## Demo login
+Every staff member can open their profile and shared loan-detail pages. Typing another role's module URL redirects to the signed-in role's overview. Sidebar and route checks use the same policy in `src/lib/access.ts`. Backend authorization continues to govern API operations.
 
-See [DEMO_CREDENTIALS.md](DEMO_CREDENTIALS.md) for the staff accounts and password — kept out of the app itself so the login page stays a real login page.
+## Charts
 
-## Mock mode and API mode
+Chart grid lines use Recharts' public coordinate-generator callbacks and scaled axis ticks. This avoids the library grid's text-measurement call with undefined font/letter-spacing values, which caused Firefox CSS warnings. Axis labels and tooltips retain their formatting.
 
-The dashboard runs in one of two modes, chosen by `VITE_API_URL` (see `.env.example`):
+## Validation and checks
 
-- **Not set (default):** the Task 1 in-memory mock data in `src/api/mock`. No backend needed.
-- **Set, e.g. `VITE_API_URL=http://localhost:8080`:** every function in `src/api` calls the Spring Boot
-  backend through `src/api/http`. Log in with the same demo accounts (the backend's `dev` profile seeds them).
-
-Pages import from `@/api/*` and do not know which mode they are in. In API mode each staff command sends the
-`version` of the application it loaded; if a colleague changed it first, the server replies `409 VERSION_CONFLICT`
-and the detail page reloads and says so instead of overwriting their work (`isVersionConflict` in `src/api/client.ts`).
-
-## What's implemented
-
-One shared dashboard with a sidebar covering every staff domain (Loan Officer, Credit Analyst, Branch Manager, Admin) — everyone sees all four for now; role-based filtering is a later phase per `docs/PROJECT-PLAN.md`. Each domain's first item is a graphical Overview & Stats page (Recharts). Application detail page has role-aware action panels: document verify/reject, credit assessment, final decision, request-more-info.
-
-## Uganda phone number rule
-
-`PhoneField` (`src/components/ui/PhoneField.tsx`) and `sanitizePhoneInput`/`isValidUgandaPhone` (`src/lib/phone.ts`) strip every non-digit character and cap the result at 10 characters inside the input's `onChange` — so a letter or symbol never appears in the field, and typing an 11th digit is simply ignored. Final format required: `07XXXXXXXX`.
-
-## Design system
-
-Color tokens live in `src/index.css` under `@theme`. The Kotlin mobile app mirrors these exact hex values in `mobile/app/.../ui/theme/Color.kt` — update both if the palette changes.
-
-## Scripts
-
-- `npm run dev` — dev server
-- `npm run build` — type-check (`tsc -b`) then production build
-- `npm run lint` — oxlint
+Input validation and Uganda phone formatting remain in `src/lib` and reusable form controls. `npm test` verifies all four staff roles, unauthorized URLs and borrower/signed-out access. `npm run build` type-checks and creates the production bundle; `npm run lint` runs oxlint. GitHub Actions runs these checks from the repository-root `.github/workflows/verify.yml`.

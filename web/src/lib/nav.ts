@@ -1,3 +1,4 @@
+import type { StaffRole } from '@/types'
 import {
   LayoutDashboard,
   UserCheck,
@@ -25,16 +26,16 @@ export interface NavChild {
 }
 
 export interface NavSection {
+  role: StaffRole
   label: string
   icon: LucideIcon
   children: NavChild[]
 }
 
-// One parent per staff domain, per the plan: every domain's first child is
-// always a graphical Overview & Stats page. All sections show for everyone
-// in Task 1 — role-based filtering is a later phase, not built here.
+// Sidebar visibility and route access use the same staff-role policy.
 export const NAV_SECTIONS: NavSection[] = [
   {
+    role: 'LOAN_OFFICER',
     label: 'Loan Officer',
     icon: UserCheck,
     children: [
@@ -45,6 +46,7 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    role: 'CREDIT_ANALYST',
     label: 'Credit Analyst',
     icon: ShieldCheck,
     children: [
@@ -54,6 +56,7 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    role: 'BRANCH_MANAGER',
     label: 'Branch Manager',
     icon: Landmark,
     children: [
@@ -64,6 +67,7 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    role: 'ADMIN',
     label: 'Admin',
     icon: Settings2,
     children: [

@@ -1,5 +1,6 @@
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { CHART_GRID, CHART_AXIS_TEXT, CHART_TOOLTIP_STYLE } from '@/lib/chartColors'
+import { ChartGrid } from './ChartGrid'
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { CHART_AXIS_TEXT, CHART_TOOLTIP_STYLE } from '@/lib/chartColors'
 
 interface TrendAreaChartProps {
   data: { label: string; value: number }[]
@@ -18,9 +19,9 @@ export function TrendAreaChart({ data, color, valueFormatter }: TrendAreaChartPr
             <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid vertical={false} stroke={CHART_GRID} />
-        <XAxis dataKey="label" tick={{ fontSize: 12, fill: CHART_AXIS_TEXT }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 12, fill: CHART_AXIS_TEXT }} axisLine={false} tickLine={false} width={40} />
+        <ChartGrid vertical={false} />
+        <XAxis dataKey="label" tick={{ letterSpacing: 0, fontSize: 12, fill: CHART_AXIS_TEXT }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ letterSpacing: 0, fontSize: 12, fill: CHART_AXIS_TEXT }} axisLine={false} tickLine={false} width={40} />
         <Tooltip
           formatter={(value) => (typeof value === 'number' && valueFormatter ? valueFormatter(value) : value)}
           contentStyle={CHART_TOOLTIP_STYLE}

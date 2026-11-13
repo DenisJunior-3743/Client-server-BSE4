@@ -1,3 +1,4 @@
+import { LoadError } from '@/components/ui/LoadError'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Package, PlusCircle } from 'lucide-react'
@@ -21,11 +22,13 @@ const PRODUCT_LABELS: Record<LoanProduct['type'], string> = {
 
 export default function ProductsListPage() {
   const [products, setProducts] = useState<LoanProduct[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    listProducts().then(setProducts)
+    listProducts().then(setProducts).catch((error: unknown) => setLoadError(error instanceof Error ? error.message : 'Unable to load data'))
   }, [])
 
+  if (loadError) return <LoadError message={loadError} />
   if (!products) return <PageSpinner />
 
   return (

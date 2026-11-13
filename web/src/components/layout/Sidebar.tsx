@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown, LayoutDashboard, LogOut, Landmark as BrandIcon } from 'lucide-react'
+import { canAccessWorkspace, homeForRole } from '@/lib/access'
 import { NAV_SECTIONS } from '@/lib/nav'
 import { STAFF_ROLE_META } from '@/lib/status'
 import { cn } from '@/lib/cn'
@@ -10,10 +11,11 @@ import { Avatar } from '@/components/ui/Avatar'
 export function Sidebar() {
   const location = useLocation()
   const { user, logout } = useAuth()
+  const sections = NAV_SECTIONS.filter((section) => canAccessWorkspace(user?.role, section.role))
 
   const [expanded, setExpanded] = useState<Set<string>>(() => {
-    const active = NAV_SECTIONS.find((s) => s.children.some((c) => location.pathname.startsWith(c.to)))
-    return new Set([active?.label ?? NAV_SECTIONS[0].label])
+    const active = sections.find((s) => s.children.some((c) => location.pathname.startsWith(c.to)))
+    return new Set([active?.label ?? sections[0]?.label ?? ''])
   })
 
   function toggle(label: string) {
@@ -39,7 +41,7 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         <NavLink
-          to="/"
+          to={homeForRole(user?.role)}
           end
           className={({ isActive }) =>
             cn(
@@ -57,7 +59,7 @@ export function Sidebar() {
         </p>
 
         <div className="flex flex-col gap-1">
-          {NAV_SECTIONS.map((section) => {
+          {sections.map((section) => {
             const isExpanded = expanded.has(section.label)
             const SectionIcon = section.icon
             const sectionActive = section.children.some((c) => location.pathname.startsWith(c.to))
