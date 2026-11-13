@@ -1,7 +1,0 @@
-target/
-.git/
-.env
-.idea/
-
-.env.*
-!.env.example
