@@ -3,6 +3,7 @@ package com.trustbank.loanapp.ui.screens.apply
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trustbank.loanapp.data.AppContainer
+import com.trustbank.loanapp.data.model.DocumentUpload
 import com.trustbank.loanapp.data.model.DocumentType
 import com.trustbank.loanapp.data.model.LoanProduct
 import com.trustbank.loanapp.data.model.PaymentTerms
@@ -21,7 +22,8 @@ val REQUIRED_APPLICATION_DOCS = listOf(DocumentType.NATIONAL_ID, DocumentType.PA
 data class NewApplicationUiState(
     val product: LoanProduct? = null,
     val step: Int = 0,
-    val attachedDocs: Set<DocumentType> = emptySet(),
+    val attachedDocs: Map<DocumentType, DocumentUpload> = emptyMap(),
+    val applicationSaved: Boolean = false,
     val docsError: String? = null,
     val isSubmitting: Boolean = false,
     val submitError: String? = null,
@@ -36,7 +38,7 @@ data class NewApplicationUiState(
 )
 
 // Loan details (amount/term/purpose) live in the screen as FieldState, not
-// here, so they can validate on every keystroke — this ViewModel only owns
+// here, so they can validate on every keystroke â€” this ViewModel only owns
 // what needs to survive step navigation but isn't per-field UI state.
 class NewApplicationViewModel(
     private val productRepository: ProductRepository = AppContainer.productRepository,
@@ -50,6 +52,8 @@ class NewApplicationViewModel(
     // fact created); editing the form makes it a different request, so it gets a new key.
     private var pendingDraft: NewApplicationInput? = null
     private var pendingKey: String = ""
+    private var savedApplicationId: String? = null
+    private val uploadedTypes = mutableSetOf<DocumentType>()
 
     fun loadProduct(productId: String) {
         viewModelScope.launch {
@@ -66,12 +70,14 @@ class NewApplicationViewModel(
         }
     }
 
-    fun toggleDoc(docType: DocumentType) {
-        val current = _uiState.value.attachedDocs
-        _uiState.value = _uiState.value.copy(
-            attachedDocs = if (docType in current) current - docType else current + docType,
-            docsError = null,
-        )
+    fun attachDocument(type: DocumentType, upload: DocumentUpload) {
+        if (_uiState.value.isSubmitting) return
+        uploadedTypes.remove(type)
+        _uiState.value = _uiState.value.copy(attachedDocs = _uiState.value.attachedDocs + (type to upload), docsError = null)
+    }
+
+    fun documentError(message: String) {
+        _uiState.value = _uiState.value.copy(docsError = message)
     }
 
     fun validateStepTwo(): Boolean {
@@ -82,6 +88,7 @@ class NewApplicationViewModel(
     }
 
     fun goToStep(step: Int) {
+        if (_uiState.value.isSubmitting || (_uiState.value.applicationSaved && step < 3)) return
         _uiState.value = _uiState.value.copy(step = step)
     }
 
@@ -100,6 +107,7 @@ class NewApplicationViewModel(
         paymentTerms: PaymentTerms,
     ) {
         val product = _uiState.value.product ?: return
+        if (_uiState.value.isSubmitting || !validateStepTwo()) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSubmitting = true, submitError = null)
             try {
@@ -122,11 +130,21 @@ class NewApplicationViewModel(
                     pendingDraft = draft
                     pendingKey = UUID.randomUUID().toString()
                 }
-                val application = applicationRepository.submitApplication(draft.copy(idempotencyKey = pendingKey))
+                val applicationId = savedApplicationId ?: applicationRepository
+                    .submitApplication(draft.copy(idempotencyKey = pendingKey)).id.also { savedApplicationId = it }
+                _uiState.value = _uiState.value.copy(applicationSaved = true)
+                for ((type, upload) in _uiState.value.attachedDocs) {
+                    if (type !in uploadedTypes) {
+                        applicationRepository.uploadDocument(applicationId, type, upload)
+                        uploadedTypes.add(type)
+                    }
+                }
                 pendingDraft = null
-                _uiState.value = _uiState.value.copy(isSubmitting = false, submittedApplicationId = application.id)
+                _uiState.value = _uiState.value.copy(isSubmitting = false, submittedApplicationId = applicationId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSubmitting = false, submitError = e.message ?: "Unable to submit application")
+                _uiState.value = _uiState.value.copy(isSubmitting = false, submitError = (if (savedApplicationId != null) "Application saved. Retry to finish uploading documents. " else "") + (e.message ?: "Unable to submit application"))
             }
         }
     }

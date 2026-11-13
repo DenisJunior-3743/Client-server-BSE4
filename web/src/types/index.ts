@@ -93,6 +93,9 @@ export interface LoanApplication {
 export interface LoanDocument {
   id: string
   loanApplicationId: string
+  downloadUrl?: string | null
+  contentType?: string
+  sizeBytes?: number
   docType: 'NATIONAL_ID' | 'PAYSLIP' | 'BANK_STATEMENT' | 'COLLATERAL_PROOF' | 'PASSPORT_PHOTO'
   fileName: string
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED'

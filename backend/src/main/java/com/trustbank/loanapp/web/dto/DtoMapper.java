@@ -68,7 +68,9 @@ public final class DtoMapper {
 
     public static DocumentDto document(LoanDocument d) {
         return new DocumentDto(d.getId(), d.getLoanApplicationId(), d.getDocType(), d.getFileName(),
-                d.getVerificationStatus(), d.getUploadedAt(), d.getVersion());
+                d.getVerificationStatus(), d.getUploadedAt(), d.getVersion(),
+                d.getGridfsFileId() == null ? null : "/api/v1/documents/" + d.getId() + "/content",
+                d.getContentType(), d.getSizeBytes());
     }
 
     public static CreditCheckDto creditCheck(CreditCheck c) {

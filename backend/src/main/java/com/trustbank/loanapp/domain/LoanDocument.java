@@ -34,6 +34,10 @@ public class LoanDocument {
     @Column(name = "file_name", nullable = false)
     private String fileName;
 
+    /** Private GridFS object id. Clients download through the authenticated API. */
+    @Column(name = "gridfs_file_id", length = 24)
+    private String gridfsFileId;
+
     @Column(name = "file_url")
     private String fileUrl;
 

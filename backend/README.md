@@ -2,7 +2,7 @@
 
 Spring Boot REST API for the Bank Loan Application System (Client Server Programming, BSE4).
 It serves the Kotlin mobile app (borrowers) and the React dashboard (bank staff), and stores
-everything in PostgreSQL on Neon.
+account and loan records in PostgreSQL on Neon. Document bytes are stored privately in MongoDB Atlas GridFS.
 
 Progress, the course-concept mapping and next steps are in [PROGRESS.md](PROGRESS.md).
 
@@ -13,6 +13,7 @@ Progress, the course-concept mapping and next steps are in [PROGRESS.md](PROGRES
 | Language / runtime | Java 21 |
 | Framework | Spring Boot 3.5 (Web, Security, Data JPA, Validation, Actuator) |
 | Database | PostgreSQL 16+ (Neon), schema owned by Flyway |
+| Document files | MongoDB Atlas GridFS; accessed through authenticated API endpoints |
 | Auth | JWT (HS256, jjwt), BCrypt password hashes |
 | API description | OpenAPI via springdoc (`/swagger-ui.html`) |
 | Build | Maven |
@@ -40,9 +41,11 @@ If your private `backend/.env` is already configured, run `.\scripts\run-local.p
    ```
    mvn spring-boot:run
    ```
-   Flyway creates the tables on first start. The default `dev` profile also creates the seven
-   staff accounts from the web repo's `DEMO_CREDENTIALS.md` (password `Passw0rd1`) and returns
-   OTP codes in the API reply so you can test without an SMS gateway.
+   Flyway creates/updates the tables on startup. The initial admin is `admin@bank.com` / `Admin123`.
+   It is created once with a BCrypt password hash; restarts never reset an existing account.
+   The admin creates staff from the dashboard or `POST /api/v1/staff`. Sample staff seeding is off
+   by default; explicitly set `SEED_DEMO_DATA=true` only if you need the old demo staff.
+   The `dev` profile returns OTP codes so you can test without an SMS gateway.
 
 4. Open http://localhost:8080/swagger-ui.html, or point the dashboard at it:
    ```
@@ -68,7 +71,8 @@ OTP echo) and set `CORS_ALLOWED_ORIGINS` to the dashboard's URL.
 | `POST /applications` | BORROWER | **Idempotency-Key required** |
 | `GET /applications?status=A,B` | any | Borrowers only ever see their own |
 | `GET /applications/{id}`, `GET /applications/{id}/schedule` | owner or staff | |
-| `POST /applications/{id}/documents` | BORROWER | Metadata only for now |
+| `POST /applications/{id}/documents` | BORROWER | Multipart `docType` + `file`, PDF/JPEG/PNG up to 5 MiB, stored in GridFS |
+| `GET /documents/{id}/content` | owner or staff | Authenticated file download; never a public Atlas URL |
 | `POST /applications/{id}/info-response` | BORROWER | |
 | `POST /applications/{id}/offer/accept` | BORROWER | **Idempotency-Key**; 410 after `offerExpiresAt` |
 | `POST /applications/{id}/repayments` | BORROWER | **Idempotency-Key** |
@@ -111,3 +115,5 @@ src/main/resources/
   application.yml
   db/migration/  Flyway SQL (V1 schema, V2 products)
 ```
+
+See [GRIDFS-SETUP.md](GRIDFS-SETUP.md) for Atlas variables, upload examples, the admin workflow and host setup.

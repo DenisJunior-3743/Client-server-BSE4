@@ -128,3 +128,21 @@ async function toApiError(response: Response): Promise<ApiError> {
     return new ApiError(response.status, 'ERROR', `Request failed (${response.status})`)
   }
 }
+
+/** Downloads private documents using the same Bearer token as JSON API requests. */
+export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
+  const token = getToken()
+  const response = await fetch(`${API_URL}/api/v1/documents/${encodeURIComponent(documentId)}/content`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    signal: AbortSignal.timeout(30_000),
+  })
+  if (!response.ok) throw await toApiError(response)
+  const blobUrl = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+}

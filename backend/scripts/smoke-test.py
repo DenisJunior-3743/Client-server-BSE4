@@ -1,6 +1,7 @@
 """Development API smoke test; creates borrower and loan records. Python 3, standard library only."""
 import concurrent.futures
 import json
+import os
 import sys
 import time
 import uuid
@@ -38,8 +39,26 @@ def call(method, path, token=None, body=None, key=None, expected=200):
     raise AssertionError("Request did not complete")
 
 
-def login(email):
-    return call("POST", "/auth/login", body={"email": email, "password": PASSWORD})[0]["accessToken"]
+def login(email, password=PASSWORD):
+    return call("POST", "/auth/login", body={"email": email, "password": password})[0]["accessToken"]
+
+
+def upload_document(loan, token, doc_type):
+    boundary = "trustbank-" + uuid.uuid4().hex
+    file_bytes = b"%PDF-1.4\nTrustBank document integration check\n%%EOF\n"
+    body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"docType\"\r\n\r\n{doc_type}\r\n"
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.pdf\"\r\n"
+            "Content-Type: application/pdf\r\n\r\n").encode() + file_bytes + f"\r\n--{boundary}--\r\n".encode()
+    req = urllib.request.Request(BASE + f"/api/v1/applications/{loan}/documents", data=body,
+        headers={"Authorization": "Bearer " + token, "Content-Type": "multipart/form-data; boundary=" + boundary}, method="POST")
+    with urllib.request.urlopen(req, timeout=50) as response:
+        assert response.status == 201
+        document = json.load(response)
+    req = urllib.request.Request(BASE + document["downloadUrl"], headers={"Authorization": "Bearer " + token})
+    with urllib.request.urlopen(req, timeout=50) as response:
+        assert response.read() == file_bytes
+        assert response.headers.get("Cache-Control") == "no-store"
+    return document
 
 
 def detail(loan, token):
@@ -71,7 +90,28 @@ def main():
     assert len(call("GET", "/applications", borrower)[0]) == 1
     call("POST", "/applications", borrower, dict(draft, amountRequested=2000000), key, expected=422)
     print("PASS concurrent duplicate submission, one loan and cached reply", flush=True)
-    officer = login("grace.officer@bankloan.ug")
+    admin = login(os.environ.get("BOOTSTRAP_ADMIN_EMAIL", "admin@bank.com"),
+                  os.environ.get("BOOTSTRAP_ADMIN_PASSWORD", "Admin123"))
+    staff_tokens = {}
+    for role in ("LOAN_OFFICER", "BRANCH_MANAGER"):
+        staff_email = role.lower() + "-" + identity + "@example.com"
+        request = {"fullName": "Integration Staff", "email": staff_email, "phone": phone,
+                   "role": role, "branch": "Integration Test Branch"}
+        call("POST", "/staff", borrower, request, expected=403)
+        created_staff, _ = call("POST", "/staff", admin, request, expected=201)
+        staff_tokens[role] = login(staff_email, created_staff["temporaryPassword"])
+    print("PASS initial admin login and admin-only staff registration", flush=True)
+    officer = staff_tokens["LOAN_OFFICER"]
+    call("POST", f"/applications/{loan}/status", officer,
+         {"status": "CREDIT_CHECK_PENDING", "version": detail(loan, officer)["version"]}, expected=422)
+    for doc_type in ("NATIONAL_ID", "PAYSLIP", "BANK_STATEMENT"):
+        document = upload_document(loan, borrower, doc_type)
+        call("PATCH", f"/documents/{document['id']}/verification", officer,
+             {"status": "VERIFIED", "version": document["version"]})
+        req = urllib.request.Request(BASE + document["downloadUrl"], headers={"Authorization": "Bearer " + officer})
+        with urllib.request.urlopen(req, timeout=50) as response:
+            assert response.read().startswith(b"%PDF-")
+    print("PASS real multipart GridFS uploads, owner/staff downloads and verification", flush=True)
     call("POST", f"/applications/{loan}/status", officer, {"status": "CREDIT_CHECK_PENDING", "version": detail(loan, officer)["version"]})
     for _ in range(30):
         application = detail(loan, officer)
@@ -80,7 +120,7 @@ def main():
         time.sleep(1)
     assert application["status"] == "UNDER_REVIEW", "Background credit check did not reach review"
     print("PASS asynchronous credit check", flush=True)
-    manager = login("esther.manager@bankloan.ug")
+    manager = staff_tokens["BRANCH_MANAGER"]
     decision = {"decision": "APPROVED", "comments": "Income verified in integration test", "version": detail(loan, manager)["version"]}
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(call, "POST", f"/applications/{loan}/decision", manager, decision, expected=(200, 409)) for _ in range(2)]
@@ -105,11 +145,10 @@ def main():
     call("POST", f"/applications/{loan}/decision", borrower, decision, expected=403)
     notices, _ = call("GET", "/me/notifications", borrower)
     assert notices, "Expected asynchronous borrower notifications"
-    admin = login("admin@bankloan.ug")
     audits, _ = call("GET", "/audit-logs", admin)
     assert any(item.get("entityId") == loan for item in audits), "Expected asynchronous loan audit entries"
     print("PASS role separation, notifications and audit persistence", flush=True)
-    print("All Neon API smoke checks passed. Development records remain in the database.", flush=True)
+    print("All Neon/GridFS API smoke checks passed. Development records remain in the database.", flush=True)
 
 
 if __name__ == "__main__":

@@ -75,7 +75,8 @@ public final class LoanDtos {
             @Positive @Max(value = 5_242_880, message = "File must be PDF/JPG/PNG under 5MB") long sizeBytes) {}
 
     public record DocumentDto(UUID id, UUID loanApplicationId, DocumentType docType, String fileName,
-            VerificationStatus verificationStatus, Instant uploadedAt, long version) {}
+            VerificationStatus verificationStatus, Instant uploadedAt, long version,
+            String downloadUrl, String contentType, long sizeBytes) {}
 
     public record CreditCheckDto(UUID id, UUID loanApplicationId, String bureauReference, int score,
             CheckResult result, Instant checkedAt) {}

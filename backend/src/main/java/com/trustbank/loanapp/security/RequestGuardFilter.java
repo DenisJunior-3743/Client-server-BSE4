@@ -70,7 +70,10 @@ public class RequestGuardFilter extends OncePerRequestFilter {
             reject(response, request, 403, "HTTPS_REQUIRED", "This API is only served over HTTPS");
             return;
         }
-        if (request.getContentLengthLong() > props.maxJsonBodyBytes()) {
+        boolean multipart = request.getContentType() != null
+                && request.getContentType().toLowerCase(java.util.Locale.ROOT).startsWith("multipart/form-data");
+        long bodyLimit = multipart ? 6_291_456 : props.maxJsonBodyBytes();
+        if (request.getContentLengthLong() > bodyLimit) {
             reject(response, request, 413, "PAYLOAD_TOO_LARGE", "Request body is too large");
             return;
         }
@@ -87,6 +90,10 @@ public class RequestGuardFilter extends OncePerRequestFilter {
             long retryAfter = Math.max(1, (windowStart + WINDOW_MILLIS - now) / 1000);
             response.setHeader("Retry-After", Long.toString(retryAfter));
             reject(response, request, 429, "RATE_LIMITED", "Too many requests. Slow down and retry.");
+            return;
+        }
+        if (multipart) {
+            chain.doFilter(request, response);
             return;
         }
         // Content-Length may be absent (chunked transfer) or inaccurate. Bound the actual

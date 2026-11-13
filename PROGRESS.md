@@ -55,3 +55,11 @@ The implementation for the six coursework concepts is present. The unit and Neon
 - Integrated the initial backend and mobile snapshot histories while retaining the complete monorepo. Component source trees match their focused branches; no application source was discarded.
 - Updated the branch guide: future commits on the existing component branches can use ordinary pull requests into main. Refresh focused branches from main by copying only the component folder.
 - Fixed Android CI setup to install explicit current SDK packages rather than the removed tools package, and matched the verified Java 21 runtime. Prior backend and web CI checks passed; Android had failed before source compilation.
+
+## GridFS documents and initial admin (2026-11-13)
+
+The backend accepts real multipart PDF/JPEG/PNG uploads, stores file bytes in Atlas GridFS, and keeps private GridFS references in Neon via Flyway V3. Owner/staff downloads require JWT authentication. The mobile app now selects and uploads files during application submission and from application detail; staff can download them from the web dashboard. Credit checks require real files and verification of the latest upload of each required type.
+
+The initial admin defaults to `admin@bank.com` / `Admin123`, stores a BCrypt hash, and is created once without resetting existing passwords. Staff registration remains admin-only. Automatic sample staff seeding is disabled by default. Atlas secrets stay in ignored `atlas-credentials.env` and `backend/.env`. Deployment variables and setup are documented in `backend/GRIDFS-SETUP.md` (or `GRIDFS-SETUP.md` from the backend folder).
+
+Validation: 33 backend unit tests passed; the opt-in Atlas upload/read/delete check passed separately. The packaged API passed health/OpenAPI checks and the full Neon/GridFS workflow smoke test, including admin-created staff, real document uploads/downloads, credit checks, concurrent approvals, disbursement and repayments. The web production build and lint passed. Live smoke-test development records remain in the databases.

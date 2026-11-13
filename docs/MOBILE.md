@@ -12,4 +12,4 @@ By default the app uses in-memory demo repositories. Any valid email and nonempt
 
 The app preserves input validation, navy/gold styling, amount visibility, package name `com.trustbank.loanapp`, version 1.1.1 (code 2), signing configuration and Reviden updates. See `mobile/VALIDATION.md` for input rules and `mobile/integration.md` for APK updates.
 
-Current limitations: JWTs and pending verification are in memory only; restarting after registration requires a recovery flow for an unverified login. Documents are metadata/checklists rather than uploaded files. Credit bureau, SMS delivery and payment settlement are demo integrations. The server records payments; it does not charge a real mobile money account.
+Current limitations: JWTs and pending verification are in memory only; restarting after registration requires a recovery flow for an unverified login. Document files now upload through the authenticated API into MongoDB Atlas GridFS; see [the GridFS setup guide](../backend/GRIDFS-SETUP.md). Credit bureau, SMS delivery and payment settlement are demo integrations. The server records payments; it does not charge a real mobile money account.

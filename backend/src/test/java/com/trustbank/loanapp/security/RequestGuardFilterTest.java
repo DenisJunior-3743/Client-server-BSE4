@@ -31,6 +31,18 @@ class RequestGuardFilterTest {
         guard(2,10).doFilter(request,response,(req,res)->assertArrayEquals("{}".getBytes(),req.getInputStream().readAllBytes()));
         assertEquals(200,response.getStatus());
     }
+    @Test void multipartBypassesJsonBufferAndPreservesOriginalRequest() throws Exception {
+        var request = new org.springframework.mock.web.MockMultipartHttpServletRequest();
+        request.setMethod("POST"); request.setRequestURI("/api/v1/applications/id/documents");
+        request.setContentType("multipart/form-data; boundary=test");
+        request.setContent(new byte[100]);
+        request.addFile(new org.springframework.mock.web.MockMultipartFile("file", "x.pdf", "application/pdf", "%PDF-1.4".getBytes()));
+        var called = new AtomicBoolean();
+        guard(16,10).doFilter(request,new MockHttpServletResponse(),(req,res)->{
+            assertSame(request,req); called.set(true);
+        });
+        assertTrue(called.get());
+    }
     @Test void refusesRequestsAboveRateLimit() throws Exception {
         var filter=guard(16,1);
         filter.doFilter(new MockHttpServletRequest("GET","/api/v1/products"),new MockHttpServletResponse(),(req,res)->{});

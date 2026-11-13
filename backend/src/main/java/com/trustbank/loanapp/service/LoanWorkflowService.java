@@ -129,14 +129,7 @@ public class LoanWorkflowService {
             throw ApiException.rule("REMARKS_REQUIRED", "Remarks are required for this action");
         }
         if (request.status() == LoanStatus.CREDIT_CHECK_PENDING) {
-            long unverified = documents.countByLoanApplicationIdAndVerificationStatus(applicationId,
-                    VerificationStatus.PENDING)
-                    + documents.countByLoanApplicationIdAndVerificationStatus(applicationId,
-                            VerificationStatus.REJECTED);
-            if (unverified > 0) {
-                throw ApiException.rule("DOCUMENTS_NOT_VERIFIED",
-                        "Every document must be verified before the credit check");
-            }
+            DocumentReadiness.requireVerified(documents.findByLoanApplicationIdOrderByUploadedAtAsc(applicationId));
         }
         if (needsNote) {
             application.setInfoRequestMessage(note);

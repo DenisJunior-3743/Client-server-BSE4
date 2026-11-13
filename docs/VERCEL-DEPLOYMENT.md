@@ -64,3 +64,7 @@ Container Functions scale down when idle. Spring `@Scheduled` jobs only execute 
 For reliable scheduled production work, use an always-on Java host or explicitly redesign jobs around an external scheduler/durable workers. This commit prepares deployment; it does not provision or claim to verify a live Vercel project.
 
 Local validation builds and runs the executable jar. The Docker image has not been built locally because the Docker daemon is not running; Vercel will execute the Dockerfile during deployment.
+
+## GridFS and initial admin
+
+Configure the additional backend variables and Atlas network access described in [the GridFS setup guide](../backend/GRIDFS-SETUP.md). Neon remains required. The initial admin creates staff; sample staff seeding is disabled by default.

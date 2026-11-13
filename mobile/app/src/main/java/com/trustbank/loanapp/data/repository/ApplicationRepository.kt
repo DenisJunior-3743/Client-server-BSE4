@@ -1,6 +1,9 @@
 package com.trustbank.loanapp.data.repository
 
 import com.trustbank.loanapp.data.mock.MockData
+import com.trustbank.loanapp.data.model.DocumentType
+import com.trustbank.loanapp.data.model.DocumentUpload
+import com.trustbank.loanapp.data.model.DocumentVerificationStatus
 import com.trustbank.loanapp.data.model.LoanApplication
 import com.trustbank.loanapp.data.model.LoanDocument
 import com.trustbank.loanapp.data.model.LoanStatus
@@ -37,6 +40,7 @@ interface ApplicationRepository {
     suspend fun listApplications(): List<LoanApplication>
     suspend fun getApplication(id: String): LoanApplication?
     suspend fun getDocuments(applicationId: String): List<LoanDocument>
+    suspend fun uploadDocument(applicationId: String, type: DocumentType, upload: DocumentUpload): LoanDocument
     suspend fun submitApplication(input: NewApplicationInput): LoanApplication
     suspend fun respondToInfoRequest(applicationId: String): LoanApplication
 
@@ -61,6 +65,14 @@ class FakeApplicationRepository : ApplicationRepository {
     override suspend fun getDocuments(applicationId: String): List<LoanDocument> {
         delay(200)
         return MockData.documents.filter { it.loanApplicationId == applicationId }
+    }
+
+    override suspend fun uploadDocument(applicationId: String, type: DocumentType, upload: DocumentUpload): LoanDocument {
+        delay(200)
+        val document = LoanDocument(java.util.UUID.randomUUID().toString(), applicationId, type,
+            upload.fileName, DocumentVerificationStatus.PENDING, LocalDateTime.now())
+        MockData.documents.add(document)
+        return document
     }
 
     override suspend fun submitApplication(input: NewApplicationInput): LoanApplication {

@@ -427,4 +427,4 @@ For a new feature, use this order:
 
 Use `.\mvnw.cmd test` from `backend/` for backend unit tests. Use `.\mvnw.cmd spring-boot:run` to run the API. Use `.\mvnw.cmd package` to build a deployable jar. The wrappers use `JAVA_HOME`, so it should point to Java 21 for this backend. See `DEPLOYMENT.md` for environment variables and the next database setup stage.
 
-Remember the present implementation limits while exploring: documents are metadata only; SMS, credit-bureau access and payment settlement are demo integrations. Database configuration will make the stored workflow usable, but it will not turn those stubs into external services.
+Remember the present implementation limits while exploring: document bytes are stored in MongoDB Atlas GridFS (see [setup](../backend/GRIDFS-SETUP.md)); SMS, credit-bureau access and payment settlement are demo integrations. Database configuration will make the stored workflow usable, but it will not turn those stubs into external services.
