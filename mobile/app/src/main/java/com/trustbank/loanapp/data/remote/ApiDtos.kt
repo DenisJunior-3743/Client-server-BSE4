@@ -137,3 +137,5 @@ data class NotificationDto(
 
 /** The one error shape the server ever returns. */
 data class ApiErrorDto(val status: Int?, val code: String?, val message: String?, val fieldErrors: Map<String, String>?)
+
+data class UpdateMeRequestDto(val fullName: String, val email: String, val phone: String)

@@ -14,10 +14,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.trustbank.loanapp.BuildConfig
 import com.trustbank.loanapp.data.AppContainer
 import com.trustbank.loanapp.ui.common.rememberFieldState
 import com.trustbank.loanapp.ui.components.AppTextField
@@ -38,6 +41,9 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
 
     val user by AppContainer.session.currentUser.collectAsState()
     var saved by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     val fullName = rememberFieldState(user?.fullName ?: "") {
         when {
@@ -64,10 +70,17 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
     fun submit() {
         val allValid = listOf(fullName.validateForSubmit(), email.validateForSubmit(), phone.validateForSubmit()).all { it }
         if (!allValid) return
-        user?.let {
-            AppContainer.session.updateUser(it.copy(fullName = fullName.value.trim(), email = email.value.trim(), phone = phone.value))
+        if (saving) return
+        scope.launch {
+            saving = true
+            saved = false
+            saveError = null
+            try {
+                AppContainer.authRepository.updateAccount(fullName.value.trim(), email.value.trim(), phone.value)
+                    .onSuccess { AppContainer.session.updateUser(it); saved = true }
+                    .onFailure { saveError = it.message ?: "Unable to save account changes" }
+            } finally { saving = false }
         }
-        saved = true
     }
 
     Column(
@@ -109,12 +122,13 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                 Text("Saved.", color = AppColors.Success600, style = MaterialTheme.typography.bodySmall)
             }
 
-            PrimaryButton(text = "Save changes", onClick = ::submit)
+            if (saveError != null) Text(saveError.orEmpty(), color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
+            PrimaryButton(text = "Save changes", isLoading = saving, onClick = ::submit)
         }
 
         SectionCard(title = "About") {
-            DetailRow("App version", "0.1.0 (Task 1)")
-            DetailRow("Backend", "Not connected yet — using local demo data")
+            DetailRow("App version", BuildConfig.VERSION_NAME)
+            DetailRow("Backend", "Online banking service")
         }
 
         SecondaryButton(

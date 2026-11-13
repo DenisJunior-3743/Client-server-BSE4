@@ -26,10 +26,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Backend base URL. Empty (the default) keeps the app on its in-memory demo data.
-        // Set it per build:  ./gradlew installDebug -PapiBaseUrl=http://10.0.2.2:8080/
-        // (10.0.2.2 is the emulator's name for the development PC) or in ~/.gradle/gradle.properties.
-        val apiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: ""
+        // Local debug builds connect to the development PC through the Android emulator.
+        // Supply the deployed backend for devices/releases using -PapiBaseUrl=https://<backend>/.
+        val apiBaseUrl = ((project.findProperty("apiBaseUrl") as String?)
+            ?: System.getenv("API_BASE_URL") ?: "http://10.0.2.2:8080/").trim()
+        require(apiBaseUrl.startsWith("https://") || apiBaseUrl.startsWith("http://")) { "apiBaseUrl must be an HTTP(S) URL" }
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 

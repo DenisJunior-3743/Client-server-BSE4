@@ -2,7 +2,6 @@ package com.trustbank.loanapp.data
 
 import com.trustbank.loanapp.data.model.LoanProduct
 import com.trustbank.loanapp.data.model.User
-import com.trustbank.loanapp.data.remote.ApiClient
 import com.trustbank.loanapp.data.remote.RemoteApplicationRepository
 import com.trustbank.loanapp.data.remote.RemoteAuthRepository
 import com.trustbank.loanapp.data.remote.RemoteNotificationRepository
@@ -11,11 +10,6 @@ import com.trustbank.loanapp.data.remote.RemoteProfileRepository
 import com.trustbank.loanapp.data.remote.TokenStore
 import com.trustbank.loanapp.data.repository.ApplicationRepository
 import com.trustbank.loanapp.data.repository.AuthRepository
-import com.trustbank.loanapp.data.repository.FakeApplicationRepository
-import com.trustbank.loanapp.data.repository.FakeAuthRepository
-import com.trustbank.loanapp.data.repository.FakeNotificationRepository
-import com.trustbank.loanapp.data.repository.FakeProductRepository
-import com.trustbank.loanapp.data.repository.FakeProfileRepository
 import com.trustbank.loanapp.data.repository.NotificationRepository
 import com.trustbank.loanapp.data.repository.ProductRepository
 import com.trustbank.loanapp.data.repository.ProfileRepository
@@ -78,14 +72,9 @@ object AppContainer {
     /** Product id -> product, filled by the remote product repository so rows can show product names. */
     val productCache = ConcurrentHashMap<String, LoanProduct>()
 
-    // Phase 2 switch: when the build has an API base URL (see app/build.gradle.kts) the app talks
-    // to the Spring Boot backend through Retrofit; otherwise it runs on the Task 1 in-memory fakes.
-    // Both sets implement the same interfaces, so no screen or view model changes.
-    private val remote = ApiClient.isConfigured
-
-    val authRepository: AuthRepository = if (remote) RemoteAuthRepository() else FakeAuthRepository()
-    val applicationRepository: ApplicationRepository = if (remote) RemoteApplicationRepository() else FakeApplicationRepository()
-    val productRepository: ProductRepository = if (remote) RemoteProductRepository() else FakeProductRepository()
-    val profileRepository: ProfileRepository = if (remote) RemoteProfileRepository() else FakeProfileRepository()
-    val notificationRepository: NotificationRepository = if (remote) RemoteNotificationRepository() else FakeNotificationRepository()
+    val authRepository: AuthRepository = RemoteAuthRepository()
+    val applicationRepository: ApplicationRepository = RemoteApplicationRepository()
+    val productRepository: ProductRepository = RemoteProductRepository()
+    val profileRepository: ProfileRepository = RemoteProfileRepository()
+    val notificationRepository: NotificationRepository = RemoteNotificationRepository()
 }
