@@ -1,5 +1,7 @@
 package com.trustbank.loanapp.security;
 
+import com.trustbank.loanapp.domain.User;
+import com.trustbank.loanapp.repo.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,9 +20,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepository users;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    public JwtAuthFilter(JwtService jwtService, UserRepository users) {
         this.jwtService = jwtService;
+        this.users = users;
     }
 
     @Override
@@ -28,9 +32,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header != null && header.startsWith("Bearer ")) {
-            jwtService.verify(header.substring(7).trim()).ifPresent(user -> {
-                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name()));
-                var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
+            // Verify the signature, then use current account state: old tokens cannot retain deleted access
+            // or a role that an administrator has removed.
+            jwtService.verify(header.substring(7).trim())
+                    .flatMap(claims -> users.findById(claims.id()))
+                    .filter(User::isActive).ifPresent(user -> {
+                var principal = new AuthUser(user.getId(), user.getEmail(), user.getRole());
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+                var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             });
         }

@@ -89,3 +89,11 @@ Repaired malformed UTF-8 punctuation in the application steps, amount/period ran
 Shared navigation now applies keyboard insets; editable fields request scrolling when focused and when keyboard height changes. Existing form scroll containers remain in use, and main bottom navigation hides during typing. Added an instrumented software-keyboard visibility test.
 
 Validation: all 14 offline release/encoding tests passed and `git diff --check` passed. Android compilation/device verification is incomplete: dependency resolution failed against Maven/Google, and the user requested that local builds stop so they can build and test. No app was installed and no new release tag was created.
+
+## Staff editing and deletion (2026-11-14)
+
+Added admin-only GET/PUT/DELETE `/api/v1/staff/{id}` endpoints and OpenAPI summaries. Updates accept name, email, phone, staff role and branch without changing passwords. Deletion removes access and the active directory entry through the existing active flag, preserving all loan/audit references and reserving the email. Staff changes generate audit events. JWT authentication now loads current account state so deletion and role changes affect existing tokens on subsequent requests. Administrator row locks and caller checks protect against concurrent admin removal; self-deletion and self-demotion are rejected. Bootstrap no longer recreates a renamed/deleted initial admin when another admin identity exists. No migration or new environment variable is needed.
+
+The web staff table now includes accessible pencil/trash actions, a prefilled edit page, delete confirmation, pending/error feedback and own-account protection. The existing staff creation flow still shows its one-time password.
+
+Validation: 53 backend tests passed, with the opt-in Atlas integration test skipped. These cover endpoint authorization/validation, staff mutations, password preservation, audit events, session revocation and bootstrap behavior. Web type checking, lint and five access-policy tests passed (lint has two existing warnings). An isolated browser with API responses intercepted verified prefilling/saving, edit errors, delete cancellation/error/success, self protection and a clean new-account form with no runtime errors. Live staff records were not changed. No release/APK build or tag was created.

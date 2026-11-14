@@ -86,6 +86,7 @@ function App() {
           <Route path="admin/overview" element={<OverviewPage title="Admin Overview" description="System-wide portfolio across all branches and roles." />} />
           <Route path="admin/staff" element={<StaffListPage />} />
           <Route path="admin/staff/new" element={<StaffFormPage />} />
+          <Route path="admin/staff/:id/edit" element={<StaffFormPage />} />
           <Route path="admin/products" element={<ProductsListPage />} />
           <Route path="admin/products/new" element={<ProductFormPage />} />
           <Route path="admin/audit-log" element={<AuditLogPage />} />

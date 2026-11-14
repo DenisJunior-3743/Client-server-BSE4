@@ -83,7 +83,21 @@ OTP echo) and set `CORS_ALLOWED_ORIGINS` to the dashboard's URL.
 | `POST /applications/{id}/decision` | BRANCH_MANAGER | body carries `version` |
 | `POST /applications/{id}/disbursement` | BRANCH_MANAGER | `version` and **Idempotency-Key** |
 | `GET /staff` | staff | `POST /staff` is ADMIN only |
+| `GET /staff/{id}` | ADMIN | Load an active staff account for editing |
+| `PUT /staff/{id}` | ADMIN | Update fullName, email, phone, role and branch; keeps password |
+| `DELETE /staff/{id}` | ADMIN | 204; revoke access and remove from the directory, retain history |
 | `GET /audit-logs` | ADMIN | |
+
+Staff deletion sets the existing `users.active` flag to false. Loan assignments, decisions and audit
+references remain intact, and the email stays reserved. Deleted accounts cannot sign in or use an
+existing JWT. Each authenticated request uses the account's current role and active status from the
+database, so changing a role also affects existing sessions on their next request.
+
+Admins cannot delete their own account or remove their own admin role. Staff mutations lock the
+active administrator rows and recheck the caller to prevent concurrent removals from leaving no
+administrator. Updates and deletions create audit events. Bootstrap only creates an administrator
+on an installation with no existing admin identities, so restarts do not recreate renamed/deleted
+bootstrap accounts. These endpoints use the existing schema and require no new environment variables.
 
 ### Error format
 
