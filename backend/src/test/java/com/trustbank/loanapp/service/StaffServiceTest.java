@@ -129,9 +129,63 @@ class StaffServiceTest {
         assertEquals(403, assertThrows(ApiException.class,
                 () -> service.updateStaff(adminId, staffId, request(Role.ADMIN))).getStatus().value());
         assertThrows(ApiException.class, () -> service.deleteStaff(adminId, staffId));
-        assertThrows(ApiException.class, () -> service.createStaff(adminId, request(Role.ADMIN)));
+        assertThrows(ApiException.class, () -> service.createStaff(adminId, request(Role.ADMIN), null));
         assertTrue(member.isActive());
         verifyNoInteractions(events);
+    }
+
+    @Test void credentialsChangeOnlyPasswordAndInvalidateEarlierSessions() {
+        String email = member.getEmail();
+        when(encoder.encode("NewPassword123")).thenReturn("new-bcrypt-hash");
+        member.setCredentialVersion(4);
+        service.setStaffCredentials(adminId, staffId, "NewPassword123");
+        assertEquals("new-bcrypt-hash", member.getPasswordHash());
+        assertEquals(5, member.getCredentialVersion());
+        assertEquals(email, member.getEmail());
+        assertEquals("Original Name", member.getFullName());
+        assertEquals(Role.LOAN_OFFICER, member.getRole());
+        assertEquals("Main", member.getBranch());
+        verify(events).publishEvent(argThat((Object event) -> event instanceof AuditEvent audit
+                && audit.action().equals("STAFF_PASSWORD_CHANGED")
+                && audit.details().equals(java.util.Map.of("email", email))));
+    }
+
+    @Test void credentialsCannotBeSetForBorrowerDeletedOrByRevokedAdmin() {
+        member.setRole(Role.BORROWER);
+        assertThrows(ApiException.class, () -> service.setStaffCredentials(adminId, staffId, "NewPassword123"));
+        member.setRole(Role.LOAN_OFFICER); member.setActive(false);
+        assertThrows(ApiException.class, () -> service.setStaffCredentials(adminId, staffId, "NewPassword123"));
+        member.setActive(true);
+        when(users.findActiveByRoleForUpdate(Role.ADMIN)).thenReturn(List.of());
+        assertThrows(ApiException.class, () -> service.setStaffCredentials(adminId, staffId, "NewPassword123"));
+        verifyNoInteractions(encoder, events);
+    }
+
+    @Test void bcryptByteLimitRejectsMultibytePasswordsWithoutChangingCredentials() {
+        String tooManyBytes = "Aa1" + "é".repeat(35);
+        assertEquals("PASSWORD_TOO_LONG", assertThrows(ApiException.class,
+                () -> service.setStaffCredentials(adminId, staffId, tooManyBytes)).getCode());
+        assertEquals("existing-hash", member.getPasswordHash());
+        assertEquals(0, member.getCredentialVersion());
+        verifyNoInteractions(encoder, events);
+    }
+
+    @Test void creationAcceptsChosenPasswordWithoutEchoingIt() {
+        when(users.save(any())).thenAnswer(call -> call.getArgument(0));
+        when(encoder.encode("ChosenPassword123")).thenReturn("chosen-hash");
+        var result = service.createStaff(adminId, request(Role.LOAN_OFFICER), "ChosenPassword123");
+        assertNull(result.temporaryPassword());
+        assertEquals("updated@bank.com", result.user().email());
+        verify(users).save(argThat(user -> user.getPasswordHash().equals("chosen-hash")));
+    }
+
+    @Test void creationStillGeneratesPasswordWhenOmitted() {
+        when(users.save(any())).thenAnswer(call -> call.getArgument(0));
+        when(encoder.encode(anyString())).thenReturn("generated-hash");
+        var result = service.createStaff(adminId, request(Role.LOAN_OFFICER), null);
+        assertNotNull(result.temporaryPassword());
+        assertTrue(result.temporaryPassword().matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,72}$"));
+        verify(encoder).encode(result.temporaryPassword());
     }
 
     @Test void missingStaffReturnsNotFound() {

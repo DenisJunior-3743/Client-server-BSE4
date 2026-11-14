@@ -15,6 +15,7 @@ import com.trustbank.loanapp.web.dto.AuthDtos.UserDto;
 import com.trustbank.loanapp.web.dto.DtoMapper;
 import com.trustbank.loanapp.web.dto.LoanDtos.AuditLogDto;
 import java.security.SecureRandom;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -65,7 +66,7 @@ public class StaffService {
     }
 
     @Transactional
-    public StaffCreatedResponse createStaff(UUID adminId, StaffRequest request) {
+    public StaffCreatedResponse createStaff(UUID adminId, StaffRequest request, String initialPassword) {
         requireActiveAdminForMutation(adminId);
         if (!STAFF_ROLES.contains(request.role())) {
             throw ApiException.rule("NOT_A_STAFF_ROLE", "Staff accounts cannot have the BORROWER role");
@@ -74,10 +75,10 @@ public class StaffService {
         if (users.existsByEmail(email)) {
             throw ApiException.conflict("EMAIL_TAKEN", "An account with this email already exists");
         }
-        String temporaryPassword = temporaryPassword();
+        String temporaryPassword = initialPassword == null ? temporaryPassword() : null;
         User user = new User();
         user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setPasswordHash(encodePassword(initialPassword == null ? temporaryPassword : initialPassword));
         user.setRole(request.role());
         user.setFullName(request.fullName().trim());
         user.setPhone(request.phone());
@@ -88,6 +89,23 @@ public class StaffService {
         events.publishEvent(new AuditEvent("USER", user.getId(), "STAFF_CREATED", adminId,
                 Map.of("role", user.getRole().name(), "email", user.getEmail())));
         return new StaffCreatedResponse(DtoMapper.user(user), temporaryPassword);
+    }
+
+    @Transactional
+    public void setStaffCredentials(UUID adminId, UUID staffId, String password) {
+        requireActiveAdminForMutation(adminId);
+        User user = requireActiveStaff(staffId);
+        user.setPasswordHash(encodePassword(password));
+        user.setCredentialVersion(user.getCredentialVersion() + 1);
+        events.publishEvent(new AuditEvent("USER", staffId, "STAFF_PASSWORD_CHANGED", adminId,
+                Map.of("email", user.getEmail())));
+    }
+
+    private String encodePassword(String password) {
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw ApiException.badRequest("PASSWORD_TOO_LONG", "Password must be no more than 72 UTF-8 bytes");
+        }
+        return passwordEncoder.encode(password);
     }
 
     @Transactional

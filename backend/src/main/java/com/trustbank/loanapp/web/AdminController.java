@@ -4,6 +4,8 @@ import com.trustbank.loanapp.security.AuthUser;
 import com.trustbank.loanapp.security.CurrentUser;
 import com.trustbank.loanapp.service.StaffService;
 import com.trustbank.loanapp.web.dto.AuthDtos.StaffCreatedResponse;
+import com.trustbank.loanapp.web.dto.AuthDtos.StaffCreateRequest;
+import com.trustbank.loanapp.web.dto.AuthDtos.StaffCredentialsRequest;
 import com.trustbank.loanapp.web.dto.AuthDtos.StaffRequest;
 import com.trustbank.loanapp.web.dto.AuthDtos.UserDto;
 import com.trustbank.loanapp.web.dto.LoanDtos.AuditLogDto;
@@ -44,8 +46,18 @@ public class AdminController {
     @PostMapping("/staff")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
-    public StaffCreatedResponse createStaff(@CurrentUser AuthUser user, @Valid @RequestBody StaffRequest request) {
-        return staff.createStaff(user.id(), request);
+    @Operation(summary = "Create staff; email is the username, password is optional (generated when omitted)")
+    public StaffCreatedResponse createStaff(@CurrentUser AuthUser user, @Valid @RequestBody StaffCreateRequest request) {
+        return staff.createStaff(user.id(), request.details(), request.password());
+    }
+
+    @PutMapping("/staff/{id}/credentials")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Set or replace staff password; keeps the email username and revokes existing sessions")
+    public void setStaffCredentials(@CurrentUser AuthUser user, @PathVariable UUID id,
+            @Valid @RequestBody StaffCredentialsRequest request) {
+        staff.setStaffCredentials(user.id(), id, request.password());
     }
 
     @GetMapping("/staff/{id}")

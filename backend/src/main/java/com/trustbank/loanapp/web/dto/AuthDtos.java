@@ -95,6 +95,22 @@ public final class AuthDtos {
             @NotNull Role role,
             @NotBlank @Size(max = 80) String branch) {}
 
-    /** The temporary password is shown exactly once, in the reply to the admin who created the account. */
+    public record StaffCreateRequest(
+            @NotBlank @Size(min = 2, max = 120) String fullName,
+            @NotBlank @Email @Size(max = 254) String email,
+            @NotBlank @Pattern(regexp = PHONE_REGEX, message = "Enter a valid phone number") String phone,
+            @NotNull Role role,
+            @NotBlank @Size(max = 80) String branch,
+            @Pattern(regexp = PASSWORD_REGEX, message = PASSWORD_MESSAGE) String password) {
+        public StaffRequest details() {
+            return new StaffRequest(fullName, email, phone, role, branch);
+        }
+    }
+
+    /** The account's existing email is the username; this request can change only its password. */
+    public record StaffCredentialsRequest(
+            @NotBlank @Pattern(regexp = PASSWORD_REGEX, message = PASSWORD_MESSAGE) String password) {}
+
+    /** Generated password is shown once; null when the admin supplied the initial password. */
     public record StaffCreatedResponse(UserDto user, String temporaryPassword) {}
 }

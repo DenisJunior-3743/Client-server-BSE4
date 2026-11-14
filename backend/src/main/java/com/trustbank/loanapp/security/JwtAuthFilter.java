@@ -35,9 +35,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Verify the signature, then use current account state: old tokens cannot retain deleted access
             // or a role that an administrator has removed.
             jwtService.verify(header.substring(7).trim())
-                    .flatMap(claims -> users.findById(claims.id()))
+                    .flatMap(claims -> users.findById(claims.id())
+                            .filter(user -> user.getCredentialVersion() == claims.credentialVersion()))
                     .filter(User::isActive).ifPresent(user -> {
-                var principal = new AuthUser(user.getId(), user.getEmail(), user.getRole());
+                var principal = new AuthUser(user.getId(), user.getEmail(), user.getRole(), user.getCredentialVersion());
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
                 var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
