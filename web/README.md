@@ -8,6 +8,8 @@ React and TypeScript staff dashboard backed by the Spring Boot API. All sign-in,
 2. Run `npm ci` and `npm run dev`.
 3. For Vercel, select root directory `web`, Vite preset and output `dist`. Set `VITE_API_URL` in the web project's environment before building/redeploying.
 
+`web/vercel.json` rewrites application URLs to `/index.html`, allowing React Router to handle direct visits and refreshes such as `/login`, `/admin/staff` and `/applications/:id`. Vercel must use `web` as this project's Root Directory so it reads that configuration. Redeploy after adding or changing it. See [Vercel's Vite SPA routing guide](https://vercel.com/docs/frameworks/frontend/vite#using-vite-to-make-spas).
+
 If the API is not configured or unavailable, the app reports an error instead of signing into sample data. Old stored demo accounts without a JWT are discarded. Use accounts created by the backend; the initial administrator is documented in [the backend setup guide](../backend/GRIDFS-SETUP.md).
 
 ## Staff workspaces
