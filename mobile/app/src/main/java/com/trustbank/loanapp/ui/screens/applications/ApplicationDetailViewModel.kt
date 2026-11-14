@@ -55,6 +55,9 @@ class ApplicationDetailViewModel(
         }
     }
 
+    suspend fun loadDocumentPreview(documentId: String): DocumentUpload =
+        applicationRepository.downloadDocument(documentId)
+
     fun documentError(message: String) {
         _uiState.value = _uiState.value.copy(actionError = message)
     }

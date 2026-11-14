@@ -97,6 +97,7 @@ fun DocumentDto.toModel() = LoanDocument(
     fileName = fileName,
     verificationStatus = enumOr(verificationStatus, DocumentVerificationStatus.PENDING),
     uploadedAt = parseInstant(uploadedAt),
+    contentType = contentType,
 )
 
 fun NotificationDto.toModel() = AppNotification(

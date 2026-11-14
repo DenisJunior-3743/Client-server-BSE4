@@ -68,6 +68,7 @@ data class LoanDocument(
     val fileName: String,
     val verificationStatus: DocumentVerificationStatus,
     val uploadedAt: LocalDateTime,
+    val contentType: String? = null,
 )
 
 data class LoanApplication(

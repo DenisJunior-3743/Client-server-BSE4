@@ -3,6 +3,8 @@ package com.trustbank.loanapp.data.remote
 import retrofit2.Response
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
+import retrofit2.http.Streaming
 import retrofit2.http.Multipart
 import retrofit2.http.Part
 import retrofit2.http.Body
@@ -71,6 +73,10 @@ interface LoanApi {
 
     @GET("api/v1/applications/{id}")
     suspend fun getApplication(@Path("id") id: String): ApplicationDetailDto
+
+    @Streaming
+    @GET("api/v1/documents/{id}/content")
+    suspend fun downloadDocument(@Path("id") id: String): ResponseBody
 
     @POST("api/v1/applications/{id}/info-response")
     suspend fun respondToInfoRequest(@Path("id") id: String, @Body body: InfoResponseRequestDto): ApplicationDto

@@ -25,6 +25,9 @@ import com.trustbank.loanapp.data.repository.ProductRepository
 import com.trustbank.loanapp.data.repository.ProfileRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
+import com.trustbank.loanapp.util.readDocumentBytes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // All application repositories use the authenticated Spring Boot API.
 //
@@ -155,6 +158,17 @@ class RemoteApplicationRepository : ApplicationRepository {
 
     override suspend fun getDocuments(applicationId: String): List<LoanDocument> =
         readOr(emptyList()) { getApplication(applicationId).documents.orEmpty().map { it.toModel() } }
+
+    override suspend fun downloadDocument(documentId: String): DocumentUpload = withContext(Dispatchers.IO) {
+        ApiClient.callWithRetry {
+            this.downloadDocument(documentId).use { body ->
+                val type = body.contentType()?.let { "${it.type}/${it.subtype}" }.orEmpty()
+                require(type == "image/jpeg" || type == "image/png") { "Only JPEG and PNG images can be previewed" }
+                require(body.contentLength() <= 5_242_880) { "Files must be under 5MB" }
+                DocumentUpload("image", type, readDocumentBytes(body.byteStream()))
+            }
+        }
+    }
 
     override suspend fun uploadDocument(applicationId: String, type: DocumentType, upload: DocumentUpload): LoanDocument =
         ApiClient.call {

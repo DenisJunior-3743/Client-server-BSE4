@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import com.trustbank.loanapp.ui.theme.AppColors
 
 @Composable
@@ -29,12 +30,14 @@ fun BackRow(title: String, onBack: () -> Unit) {
 @Composable
 fun DetailRow(label: String, value: String) {
     Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = AppColors.Neutral500)
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = AppColors.Neutral900)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = AppColors.Neutral500,
+            modifier = Modifier.weight(0.4f))
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = AppColors.Neutral900,
+            textAlign = TextAlign.End, modifier = Modifier.weight(0.6f))
     }
 }

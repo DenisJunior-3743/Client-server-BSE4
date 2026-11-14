@@ -1,6 +1,10 @@
 package com.trustbank.loanapp.ui.components
 
 import android.provider.OpenableColumns
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.unit.dp
+import com.trustbank.loanapp.util.readDocumentBytes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
@@ -13,11 +17,12 @@ import kotlinx.coroutines.withContext
 
 /** System document picker requires no broad storage permission and supports cloud providers. */
 @Composable
-fun DocumentPickerButton(label: String, enabled: Boolean = true,
+fun DocumentPickerButton(label: String, enabled: Boolean = true, selected: DocumentUpload? = null,
         onSelected: (DocumentUpload) -> Unit, onError: (String) -> Unit) {
     val resolver = LocalContext.current.contentResolver
     val scope = rememberCoroutineScope()
     var reading by remember { mutableStateOf(false) }
+    var picked by remember { mutableStateOf<DocumentUpload?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
             reading = true
@@ -30,22 +35,12 @@ fun DocumentPickerButton(label: String, enabled: Boolean = true,
                     val type = resolver.getType(uri).orEmpty()
                     require(type in setOf("application/pdf", "image/jpeg", "image/png")) { "Choose a PDF, JPEG or PNG file" }
                     val bytes = resolver.openInputStream(uri)?.use { input ->
-                        val output = java.io.ByteArrayOutputStream()
-                        val buffer = ByteArray(8192)
-                        var total = 0
-                        while (true) {
-                            val count = input.read(buffer)
-                            if (count < 0) break
-                            total += count
-                            require(total <= 5_242_880) { "Files must be under 5MB" }
-                            output.write(buffer, 0, count)
-                        }
-                        output.toByteArray()
+                        readDocumentBytes(input)
                     } ?: error("Cannot read the selected file")
-                    require(bytes.isNotEmpty()) { "Choose a non-empty file" }
                     DocumentUpload(name, type, bytes)
                 }
                 onSelected(upload)
+                picked = upload
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -53,7 +48,10 @@ fun DocumentPickerButton(label: String, enabled: Boolean = true,
             } finally { reading = false }
         }
     }
-    SecondaryButton(text = if (reading) "Reading file…" else label,
-        enabled = enabled && !reading,
-        onClick = { launcher.launch(arrayOf("application/pdf", "image/jpeg", "image/png")) })
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SecondaryButton(text = if (reading) "Reading file…" else label,
+            enabled = enabled && !reading,
+            onClick = { launcher.launch(arrayOf("application/pdf", "image/jpeg", "image/png")) })
+        (selected ?: picked)?.let { SelectedDocumentPreview(it) }
+    }
 }
