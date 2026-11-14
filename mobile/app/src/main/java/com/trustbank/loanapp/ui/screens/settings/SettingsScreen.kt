@@ -128,6 +128,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
 
         SectionCard(title = "About") {
             DetailRow("App version", BuildConfig.VERSION_NAME)
+            DetailRow("Update channel", if (BuildConfig.REVIDEN_CHANNEL == "testing") "Testing" else "Production")
             DetailRow("Backend", "Online banking service")
         }
 

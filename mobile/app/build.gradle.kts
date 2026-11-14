@@ -1,3 +1,4 @@
+import java.net.URI
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -6,12 +7,31 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Release signing lives outside git (see keystore/keystore.properties, gitignored) —
-// same key must be reused for every Reviden Store release (integration.md §1).
+// Release signing lives outside git (see keystore/keystore.properties, gitignored) â€”
+// same key must be reused for every Reviden Store release (integration.md Â§1).
 val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) load(FileInputStream(keystorePropertiesFile))
 }
+
+// CI reads signing credentials from the runner environment; local builds reuse the private keystore file.
+val releaseStorePath = System.getenv("KEYSTORE_PATH") ?: keystoreProperties.getProperty("storeFile")
+val releaseStorePassword = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties.getProperty("storePassword")
+val releaseKeyAlias = System.getenv("KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
+val releaseKeyPassword = System.getenv("KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+val releaseSigningReady = listOf(releaseStorePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
+val releaseRequested = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+if (releaseRequested) require(releaseSigningReady) { "Release signing is required. Configure the existing local keystore or CI signing secrets." }
+
+val buildVersionCode = ((project.findProperty("ciVersionCode") as String?) ?: "3").toIntOrNull()
+    ?: error("ciVersionCode must be a positive integer")
+val buildVersionName = (project.findProperty("ciVersionName") as String?) ?: "1.2.0"
+require(buildVersionCode in 1..2_100_000_000) { "ciVersionCode must be a positive Android version code" }
+require(buildVersionName.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?"))) { "Invalid ciVersionName" }
+val releaseChannel = (project.findProperty("revidenChannel") as String?) ?: "production"
+require(releaseChannel in setOf("testing", "production")) { "Invalid Reviden channel" }
+val storeBaseUrl = ((project.findProperty("revidenBaseUrl") as String?) ?: "https://reviden-store.onrender.com").trimEnd('/')
+require(storeBaseUrl.startsWith("https://") && !storeBaseUrl.contains('"')) { "Reviden Store must use HTTPS" }
 
 android {
     namespace = "com.trustbank.loanapp"
@@ -21,26 +41,32 @@ android {
         applicationId = "com.trustbank.loanapp"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.1"
+        versionCode = buildVersionCode
+        versionName = buildVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Local debug builds connect to the development PC through the Android emulator.
+        // Defaults come from the public backend origin in mobile/gradle.properties.
         // Supply the deployed backend for devices/releases using -PapiBaseUrl=https://<backend>/.
-        val apiBaseUrl = ((project.findProperty("apiBaseUrl") as String?)
-            ?: System.getenv("API_BASE_URL") ?: "http://10.0.2.2:8080/").trim()
+        val apiBaseUrl = (gradle.startParameter.projectProperties["apiBaseUrl"]
+            ?: System.getenv("API_BASE_URL") ?: (project.findProperty("apiBaseUrl") as String?)
+            ?: "http://10.0.2.2:8080/").trim()
         require(apiBaseUrl.startsWith("https://") || apiBaseUrl.startsWith("http://")) { "apiBaseUrl must be an HTTP(S) URL" }
+        val backendUri = URI(apiBaseUrl)
+        require(backendUri.host != null && backendUri.userInfo == null && backendUri.query == null && backendUri.fragment == null) { "apiBaseUrl must be a backend origin without credentials, query or fragment" }
+        if (releaseRequested) require(backendUri.scheme == "https" && backendUri.host !in setOf("localhost", "127.0.0.1", "10.0.2.2")) { "Release APK requires a public HTTPS backend" }
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "REVIDEN_BASE_URL", "\"$storeBaseUrl\"")
+        buildConfigField("String", "REVIDEN_CHANNEL", "\"$releaseChannel\"")
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (releaseSigningReady) {
             create("release") {
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = rootProject.file(requireNotNull(releaseStorePath))
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
             }
         }
     }
@@ -50,7 +76,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (keystorePropertiesFile.exists()) {
+            if (releaseSigningReady) {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
@@ -96,7 +122,7 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Reviden Store update checking/downloading (see integration.md) — plain HTTP, no other Reviden-specific dependency.
+    // Reviden Store update checking/downloading (see integration.md) â€” plain HTTP, no other Reviden-specific dependency.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
 
