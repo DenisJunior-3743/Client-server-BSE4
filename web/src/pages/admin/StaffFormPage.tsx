@@ -10,7 +10,7 @@ import { isStaffRole } from '@/lib/access'
 import { LoadError } from '@/components/ui/LoadError'
 import { PageSpinner } from '@/components/ui/PageSpinner'
 import { ApiError } from '@/api/client'
-import { staffSchema, type StaffFormValues } from '@/lib/schemas'
+import { staffCreateSchema, type StaffCreateFormValues } from '@/lib/schemas'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { TextField } from '@/components/ui/TextField'
@@ -54,33 +54,35 @@ function StaffForm({ staff }: { staff?: User }) {
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<StaffFormValues>({
-    resolver: zodResolver(staffSchema),
+  } = useForm<StaffCreateFormValues>({
+    resolver: zodResolver(staffCreateSchema),
     defaultValues: {
       fullName: staff?.fullName ?? '', email: staff?.email ?? '', phone: staff?.phone ?? '', branch: staff?.branch ?? '',
       role: staff && isStaffRole(staff.role) ? staff.role : undefined,
+      password: '',
     },
   })
 
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
-  async function onSubmit(values: StaffFormValues) {
+  async function onSubmit(values: StaffCreateFormValues) {
     setFormError(null)
     try {
+      const { password, ...details } = values
       if (staff) {
-        const updated = await updateStaff(staff.id, values)
+        const updated = await updateStaff(staff.id, details)
         if (updated.id === user?.id) updateProfile(updated)
         navigate('/admin/staff')
         return
       }
-      const created = await createStaff(values)
+      const created = await createStaff({ ...details, ...(password ? { password } : {}) })
       // The real API returns a one-time temporary password; show it before leaving the page.
       if (created.temporaryPassword) setTemporaryPassword(created.temporaryPassword)
       else navigate('/admin/staff')
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors) {
-        for (const field of ['fullName', 'email', 'phone', 'role', 'branch'] as const) {
+        for (const field of ['fullName', 'email', 'phone', 'role', 'branch', 'password'] as const) {
           const message = err.fieldErrors[field]
           if (message) setError(field, { message })
         }
@@ -125,6 +127,9 @@ function StaffForm({ staff }: { staff?: User }) {
           <PhoneField label="Phone number" required error={errors.phone?.message} {...register('phone')} />
           <SelectField label="Role" required placeholder="Select a role" options={staff?.id === user?.id ? ROLE_OPTIONS.filter((option) => option.value === 'ADMIN') : ROLE_OPTIONS} error={errors.role?.message} {...register('role')} />
           <TextField label="Branch" required placeholder="e.g. Mbarara Branch" error={errors.branch?.message} {...register('branch')} />
+          {!staff && <TextField label="Initial password (optional)" type="password" autoComplete="new-password"
+            hint="Leave blank to generate a temporary password. Otherwise use 8–72 characters, uppercase and lowercase letters, and a number."
+            error={errors.password?.message} {...register('password')} />}
           {formError && <p role="alert" className="text-sm font-medium text-danger-600">{formError}</p>}
           <Button type="submit" isLoading={isSubmitting}>
             {staff ? 'Save changes' : 'Create staff account'}

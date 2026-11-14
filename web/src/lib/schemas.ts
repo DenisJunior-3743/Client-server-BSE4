@@ -18,6 +18,25 @@ export const staffSchema = z.object({
 })
 export type StaffFormValues = z.infer<typeof staffSchema>
 
+export const staffPasswordSchema = z.string()
+  .min(8, 'Use at least 8 characters')
+  .max(72, 'Use no more than 72 characters')
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,72}$/, 'Use uppercase and lowercase letters and a number')
+  .refine((value) => new TextEncoder().encode(value).length <= 72, 'Use no more than 72 UTF-8 bytes')
+
+export const staffCreateSchema = staffSchema.extend({
+  password: z.union([z.literal(''), staffPasswordSchema]).optional(),
+})
+export type StaffCreateFormValues = z.infer<typeof staffCreateSchema>
+
+export const staffCredentialsSchema = z.object({
+  password: staffPasswordSchema,
+  confirmPassword: z.string().min(1, 'Confirm the new password'),
+}).refine((value) => value.password === value.confirmPassword, {
+  path: ['confirmPassword'], message: 'Passwords do not match',
+})
+export type StaffCredentialsFormValues = z.infer<typeof staffCredentialsSchema>
+
 export const productSchema = z
   .object({
     name: z.string().min(1, 'Product name is required'),

@@ -1,7 +1,7 @@
 import { LoadError } from '@/components/ui/LoadError'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, UserPlus, Users } from 'lucide-react'
+import { KeyRound, Pencil, Trash2, UserPlus, Users } from 'lucide-react'
 import { deleteStaff, listStaff } from '@/api/staff'
 import { useAuth } from '@/state/AuthContext'
 import type { User } from '@/types'
@@ -100,6 +100,14 @@ export default function StaffListPage() {
                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary-600 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-primary-500"
                       >
                         <Pencil aria-hidden="true" className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        to={`/admin/staff/${encodeURIComponent(s.id)}/credentials`}
+                        aria-label={`Set password for ${s.fullName}`}
+                        title="Set or change password"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary-600 hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-primary-500"
+                      >
+                        <KeyRound aria-hidden="true" className="h-4 w-4" />
                       </Link>
                       <Button
                         type="button" variant="ghost" size="sm"
