@@ -1,6 +1,8 @@
 package com.trustbank.loanapp.ui.screens.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -142,6 +145,7 @@ private fun MainScaffold(
     onMenuClick: () -> Unit,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
+    val keyboardVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     var unreadNotifications by remember { mutableStateOf(0) }
     val user by AppContainer.session.currentUser.collectAsState()
 
@@ -161,7 +165,7 @@ private fun MainScaffold(
             )
         },
         bottomBar = {
-            NavigationBar(
+            if (!keyboardVisible) NavigationBar(
                 containerColor = Color.White,
                 modifier = Modifier
                     .navigationBarsPadding()

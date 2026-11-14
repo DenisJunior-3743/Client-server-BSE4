@@ -7,8 +7,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Release signing lives outside git (see keystore/keystore.properties, gitignored) â€”
-// same key must be reused for every Reviden Store release (integration.md Â§1).
+// Release signing lives outside git (see keystore/keystore.properties, gitignored) —
+// same key must be reused for every Reviden Store release (integration.md §1).
 val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) load(FileInputStream(keystorePropertiesFile))
@@ -122,7 +122,7 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Reviden Store update checking/downloading (see integration.md) â€” plain HTTP, no other Reviden-specific dependency.
+    // Reviden Store update checking/downloading (see integration.md) — plain HTTP, no other Reviden-specific dependency.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
 

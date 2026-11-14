@@ -33,3 +33,11 @@ Current limits: JWTs and pending OTP verification live in memory. SMS delivery, 
 ## Signed releases and Reviden Store
 
 See [REVIDEN-RELEASE.md](REVIDEN-RELEASE.md) for the signed test APK, tag-triggered hosting workflow, seven GitHub secrets, release channels and client-initiated loan testing.
+
+## Product data and keyboard handling
+
+The product catalogue is fetched from the backend's `GET /api/v1/products` endpoint through `RemoteProductRepository`. There is no bundled product list in the app; names, rates, amounts and periods come from the API.
+
+All navigation screens share IME padding, and all editable fields use a focus-aware scroll request. Forms already use scroll containers, so the viewport shrinks above the keyboard and the focused field scrolls into view. The main bottom navigation hides while the keyboard is open. Source files use UTF-8; release-tool checks reject the malformed punctuation seen in earlier builds.
+
+`app/src/androidTest/java/com/trustbank/loanapp/KeyboardVisibilityTest.kt` checks a multiline field against the actual software keyboard. The new keyboard behavior still needs device testing; the local Android build could not finish because dependency downloads failed. No test app was installed on the connected phone.
