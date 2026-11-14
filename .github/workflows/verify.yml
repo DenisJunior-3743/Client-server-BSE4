@@ -42,5 +42,7 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
           log-accepted-android-sdk-licenses: false
+      - name: Verify Reviden release helpers
+        run: python3 -m unittest discover -s mobile/scripts/reviden/tests -v
       - run: chmod +x gradlew && ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon
         working-directory: mobile

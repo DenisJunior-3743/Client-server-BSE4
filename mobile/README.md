@@ -4,7 +4,7 @@ Open `mobile/` in Android Studio. All repositories use the Spring Boot API. Fake
 
 ## Backend URL
 
-Local debug builds default to `http://10.0.2.2:8080/`, the development PC as seen from the Android emulator. For a physical phone or your hosted backend, build with:
+Builds default to the public backend `https://client-server-bse4-backend.vercel.app/` from `gradle.properties`. For a local Android emulator, override with `-PapiBaseUrl=http://10.0.2.2:8080/`. For a physical phone or your hosted backend, build with:
 
 ```powershell
 .\gradlew.bat installDebug -PapiBaseUrl=https://<backend-domain>/
@@ -29,3 +29,7 @@ It runs on pushes, pull requests and manual `workflow_dispatch`. At present ther
 The Gradle wrapper uses 9.7.1 with Android plugin 8.4.2 and Kotlin 1.9.24. Package name, app version, signing configuration and Reviden update settings are preserved. See `VALIDATION.md` for validation and `integration.md` for APK update steps.
 
 Current limits: JWTs and pending OTP verification live in memory. SMS delivery, credit-bureau and payment-provider integrations remain backend stubs; these are separate from the removed client mock-data mode.
+
+## Signed releases and Reviden Store
+
+See [REVIDEN-RELEASE.md](REVIDEN-RELEASE.md) for the signed test APK, tag-triggered hosting workflow, seven GitHub secrets, release channels and client-initiated loan testing.

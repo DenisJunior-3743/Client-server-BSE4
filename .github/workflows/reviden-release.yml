@@ -1,0 +1,223 @@
+name: Reviden release
+
+# Push a version tag from main or mobile and this builds the release APK (signed, shrunk with
+# R8), verifies it, and publishes it to Reviden Store. See mobile/REVIDEN-RELEASE.md.
+#
+#   git tag -a V1.0.0.beta.0 -m "What is new"   ->  Testing channel
+#   git tag -a V1.0.0 -m "What is new"           ->  Production channel, optional update
+#   git tag -a V1.0.1+forced -m "What is new"    ->  Production, forced after a grace period
+#   git push origin <tag>
+on:
+  push:
+    tags: ["v*", "V*"]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        type: choice
+        options: [testing, production]
+        default: testing
+        required: true
+      version:
+        description: Version name, for example 1.2.0 or 1.2.0-beta.1
+        type: string
+        required: true
+      dry_run:
+        description: Build and verify without uploading
+        type: boolean
+        default: true
+      update_type:
+        description: Update policy
+        type: choice
+        options: [optional, forced]
+        default: optional
+        required: true
+      grace_days:
+        description: Days a forced update can be postponed after publication (0 means mandatory at once)
+        type: number
+        default: 4
+        required: true
+      minimum_version_code:
+        description: Versions below this code must update immediately, even during grace (1 means none)
+        type: number
+        default: 1
+        required: true
+
+permissions:
+  contents: read
+
+# One release at a time: the version code is chosen from the store's history.
+concurrency:
+  group: reviden-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      REVIDEN_BASE_URL: ${{ secrets.REVIDEN_BASE_URL }}
+      REVIDEN_PROJECT_ID: ${{ secrets.REVIDEN_PROJECT_ID }}
+      REVIDEN_API_TOKEN: ${{ secrets.REVIDEN_API_TOKEN }}
+      APP_PACKAGE: com.trustbank.loanapp
+      API_BASE_URL: ${{ vars.API_BASE_URL || 'https://client-server-bse4-backend.vercel.app/' }}
+      VERSION_CODE_FLOOR: ${{ vars.VERSION_CODE_FLOOR || '3' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a commit from main or mobile
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main mobile
+          if ! git merge-base --is-ancestor HEAD origin/main && ! git merge-base --is-ancestor HEAD origin/mobile; then
+            echo "::error::Tag a commit that has been pushed to main or mobile."
+            exit 1
+          fi
+
+      - name: Check the secrets are set
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for key in REVIDEN_BASE_URL REVIDEN_PROJECT_ID REVIDEN_API_TOKEN \
+            ANDROID_KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            [ -n "${!key:-}" ] || missing+=("$key")
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error title=Missing secrets::Add these under Settings > Secrets and variables > Actions: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Select version, channel and update policy
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CHANNEL: ${{ inputs.channel }}
+          INPUT_UPDATE_TYPE: ${{ inputs.update_type }}
+          INPUT_GRACE_DAYS: ${{ inputs.grace_days }}
+          INPUT_MINIMUM_CODE: ${{ inputs.minimum_version_code }}
+          TAG_CHANNEL: ${{ vars.TAG_CHANNEL || 'production' }}
+          DEFAULT_GRACE_DAYS: ${{ vars.GRACE_DAYS || '4' }}
+          DEFAULT_UPDATE_TYPE: ${{ vars.UPDATE_TYPE || 'optional' }}
+          DEFAULT_MINIMUM_CODE: ${{ vars.MINIMUM_VERSION_CODE || '1' }}
+        run: bash mobile/scripts/reviden/select-release.sh
+
+      - name: Choose the next version code
+        id: code
+        run: |
+          set -euo pipefail
+          code_file="$RUNNER_TEMP/reviden-code"
+          : > "$code_file"
+          GITHUB_OUTPUT="$code_file" bash mobile/scripts/reviden/next-version-code.sh
+          next_code="$(sed -n 's/^version_code=//p' "$code_file")"
+          (( MINIMUM_VERSION_CODE <= next_code )) || {
+            echo "::error title=Minimum code::The minimum version code ($MINIMUM_VERSION_CODE) is above this release's code ($next_code)."
+            exit 1
+          }
+          cat "$code_file" >> "$GITHUB_OUTPUT"
+
+      - name: Write the release notes
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+        run: |
+          set -euo pipefail
+          # checkout keeps only the commit for a tag; fetch the real tag so its message is the notes.
+          git fetch --force --tags origin
+          bash mobile/scripts/reviden/release-notes.sh
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+          log-accepted-android-sdk-licenses: false
+
+      - name: Verify release helper scripts
+        run: python3 -m unittest discover -s mobile/scripts/reviden/tests -v
+
+      - name: Build, sign, shrink and check the APK
+        env:
+          VERSION_CODE: ${{ steps.code.outputs.version_code }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          # A fingerprint is not secret, so it can be a variable; a secret works too.
+          RELEASE_CERT_SHA256: ${{ vars.RELEASE_CERT_SHA256 || secrets.RELEASE_CERT_SHA256 }}
+        run: bash mobile/scripts/reviden/build-apk.sh
+
+      - name: Keep the APK and the R8 mapping with this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ env.CHANNEL }}-${{ env.VERSION_NAME }}
+          path: mobile/releases/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Require a healthy backend before publishing
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          response="$RUNNER_TEMP/trustbank-health.json"
+          status="$(curl --silent --show-error --retry 2 --retry-delay 5 --retry-connrefused --connect-timeout 20 --max-time 60 --output "$response" --write-out '%{http_code}' "${API_BASE_URL%/}/actuator/health")"
+          if [ "$status" != 200 ] || ! jq -e '.status == "UP"' "$response" >/dev/null; then
+            echo "::error::The backend is not healthy (HTTP $status). The signed APK is available in artifacts; fix the backend before publishing."
+            exit 1
+          fi
+
+      - name: Recheck the version code before uploading
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        env:
+          BUILT_CODE: ${{ steps.code.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          check_file="$RUNNER_TEMP/reviden-version-check"
+          : > "$check_file"
+          GITHUB_OUTPUT="$check_file" bash mobile/scripts/reviden/next-version-code.sh
+          next_code="$(sed -n 's/^version_code=//p' "$check_file")"
+          [ "$next_code" = "$BUILT_CODE" ] || {
+            echo "::error title=Version code::The store changed while this was building (next code is now $next_code, not $BUILT_CODE). Push a new tag to rebuild."
+            exit 1
+          }
+
+      - name: Upload, wait for storage, and publish
+        id: publish
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        env:
+          VERSION_CODE: ${{ steps.code.outputs.version_code }}
+        run: bash mobile/scripts/reviden/publish-apk.sh
+
+      - name: Summary
+        if: ${{ always() }}
+        env:
+          VERSION_CODE: ${{ steps.code.outputs.version_code }}
+          RELEASE_ID: ${{ steps.publish.outputs.release_id }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          {
+            echo "### Reviden release"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Channel | \`${CHANNEL:-not chosen}\` |"
+            echo "| Version | \`${VERSION_NAME:-?}\` (code \`${VERSION_CODE:-?}\`) |"
+            echo "| Update | \`${UPDATE_TYPE:-?}\`, grace period ${GRACE_DAYS:-0} days |"
+            if [ -n "${RELEASE_ID:-}" ]; then
+              echo "| Published | release \`$RELEASE_ID\` |"
+            elif [ "$DRY_RUN" = true ]; then
+              echo "| Published | no, this was a dry run |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the signing key and build settings from the runner
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/trustbank-release.jks"

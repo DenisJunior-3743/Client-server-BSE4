@@ -68,3 +68,7 @@ For Vercel backend hosting, select branch `backend` (or `main`) and Root Directo
 ## API-only clients and staff navigation (2026-11-14)
 
 Web and Android no longer contain client mock-data modes or fake sign-in. Configure the web build with `VITE_API_URL` and Android with `-PapiBaseUrl=https://<backend-domain>/` (or build environment `API_BASE_URL`). Admins see every web workspace; other staff see only their role's workspace, and direct module URLs are guarded by the same policy. Mobile CI is configured in the repository-root `.github/workflows/verify.yml`, with `mobile/` as the Android job working directory.
+
+## Mobile releases
+
+[Build a signed APK and publish by tag](mobile/REVIDEN-RELEASE.md). The Reviden release workflow supports main and mobile branch commits, testing/production channels, existing-key verification, artifact retention and explicit store publication.
