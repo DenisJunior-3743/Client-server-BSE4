@@ -106,6 +106,6 @@ An Android Studio debug build has a different signing key and must be uninstalle
 5. Sign into the web dashboard as the relevant staff: inspect/verify documents, initiate the credit check, and have the manager decide the application.
 6. Return to mobile, accept an approved offer, and continue through disbursement/repayment testing.
 
-The workflow never creates customer loans or transfers money. SMS, credit bureau and payment settlement remain the previously documented demo integrations. For controlled new-account testing without an SMS provider, the backend can explicitly enable `APP_OTP_DEV_ECHO=true` so the existing verification screen can show the test code; keep that off for real customer use.
+The workflow never creates customer loans or transfers money. SMS, credit bureau and payment settlement remain the previously documented demo integrations. For controlled new-account testing without an SMS provider, use the backend development OTP-echo configuration so the existing verification screen can show the test code. Real customer deployments need an SMS provider rather than echoed codes.
 
 The supplied hosted backend returned HTTP 500 from its health endpoint during setup. A valid APK cannot complete the loan flow until that deployment is healthy. Check the Vercel runtime startup error and the Neon/Atlas/environment configuration; do not assume an APK rebuild will fix a server startup failure.
