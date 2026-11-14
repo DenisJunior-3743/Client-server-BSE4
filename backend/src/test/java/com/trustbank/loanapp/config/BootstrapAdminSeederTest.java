@@ -31,6 +31,13 @@ class BootstrapAdminSeederTest {
         verifyNoInteractions(encoder);
         verify(users, never()).saveAndFlush(any());
     }
+    @Test void restartDoesNotRecreateRenamedOrRemovedBootstrapAccountWhenAnotherAdminExists() {
+        when(users.countByRoleIn(anyCollection())).thenReturn(1L);
+        seeder.run(null);
+        verify(users, never()).findByEmail(anyString());
+        verify(users, never()).saveAndFlush(any());
+        verifyNoInteractions(encoder);
+    }
     @Test void neverPromotesAnExistingBorrower() {
         User borrower = new User(); borrower.setRole(Role.BORROWER);
         when(users.findByEmail("admin@bank.com")).thenReturn(Optional.of(borrower));

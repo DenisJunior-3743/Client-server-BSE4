@@ -4,6 +4,7 @@ import com.trustbank.loanapp.domain.Role;
 import com.trustbank.loanapp.domain.User;
 import com.trustbank.loanapp.repo.UserRepository;
 import java.util.Locale;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -38,6 +39,9 @@ public class BootstrapAdminSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         // Serialize bootstrap across concurrent host instances using the SQL transaction.
         jdbc.execute("SELECT pg_advisory_xact_lock(817263540)");
+        // Bootstrap only a new installation. An admin may later rename, demote or delete the
+        // original account; restarts must not recreate it or undo staff management.
+        if (users.countByRoleIn(Set.of(Role.ADMIN)) > 0) return;
         var existing = users.findByEmail(email);
         if (existing.isPresent()) {
             if (existing.get().getRole() != Role.ADMIN)

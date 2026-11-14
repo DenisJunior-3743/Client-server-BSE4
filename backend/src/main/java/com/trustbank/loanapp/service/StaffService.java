@@ -56,11 +56,17 @@ public class StaffService {
 
     @Transactional(readOnly = true)
     public List<UserDto> listStaff() {
-        return users.findByRoleInOrderByCreatedAtAsc(STAFF_ROLES).stream().map(DtoMapper::user).toList();
+        return users.findByActiveTrueAndRoleInOrderByCreatedAtAsc(STAFF_ROLES).stream().map(DtoMapper::user).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public UserDto getStaff(UUID staffId) {
+        return DtoMapper.user(requireActiveStaff(staffId));
     }
 
     @Transactional
     public StaffCreatedResponse createStaff(UUID adminId, StaffRequest request) {
+        requireActiveAdminForMutation(adminId);
         if (!STAFF_ROLES.contains(request.role())) {
             throw ApiException.rule("NOT_A_STAFF_ROLE", "Staff accounts cannot have the BORROWER role");
         }
@@ -82,6 +88,62 @@ public class StaffService {
         events.publishEvent(new AuditEvent("USER", user.getId(), "STAFF_CREATED", adminId,
                 Map.of("role", user.getRole().name(), "email", user.getEmail())));
         return new StaffCreatedResponse(DtoMapper.user(user), temporaryPassword);
+    }
+
+    @Transactional
+    public UserDto updateStaff(UUID adminId, UUID staffId, StaffRequest request) {
+        requireActiveAdminForMutation(adminId);
+        User user = requireActiveStaff(staffId);
+        if (!STAFF_ROLES.contains(request.role())) {
+            throw ApiException.rule("NOT_A_STAFF_ROLE", "Staff accounts cannot have the BORROWER role");
+        }
+        if (adminId.equals(staffId) && request.role() != Role.ADMIN) {
+            throw ApiException.conflict("SELF_ROLE_CHANGE", "You cannot remove your own administrator role");
+        }
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (!email.equals(user.getEmail()) && users.existsByEmail(email)) {
+            throw ApiException.conflict("EMAIL_TAKEN", "An account with this email already exists");
+        }
+        user.setFullName(request.fullName().trim());
+        user.setEmail(email);
+        user.setPhone(request.phone());
+        user.setRole(request.role());
+        user.setBranch(request.branch().trim());
+        // Password and past workflow/audit references remain unchanged.
+        events.publishEvent(new AuditEvent("USER", staffId, "STAFF_UPDATED", adminId,
+                Map.of("role", user.getRole().name(), "email", user.getEmail())));
+        return DtoMapper.user(user);
+    }
+
+    @Transactional
+    public void deleteStaff(UUID adminId, UUID staffId) {
+        requireActiveAdminForMutation(adminId);
+        if (adminId.equals(staffId)) {
+            throw ApiException.conflict("SELF_DELETE", "You cannot delete your own administrator account");
+        }
+        User user = requireStaff(staffId);
+        if (!user.isActive()) return; // DELETE is safe to repeat.
+        // Retain the identity referenced by loans, decisions and audit rows; revoke access instead.
+        user.setActive(false);
+        events.publishEvent(new AuditEvent("USER", staffId, "STAFF_DELETED", adminId,
+                Map.of("role", user.getRole().name(), "email", user.getEmail())));
+    }
+
+    private void requireActiveAdminForMutation(UUID adminId) {
+        if (users.findActiveByRoleForUpdate(Role.ADMIN).stream().noneMatch(admin -> admin.getId().equals(adminId))) {
+            throw ApiException.forbidden("An active administrator account is required");
+        }
+    }
+
+    private User requireStaff(UUID staffId) {
+        return users.findById(staffId).filter(user -> STAFF_ROLES.contains(user.getRole()))
+                .orElseThrow(() -> ApiException.notFound("Staff member"));
+    }
+
+    private User requireActiveStaff(UUID staffId) {
+        User user = requireStaff(staffId);
+        if (!user.isActive()) throw ApiException.notFound("Staff member");
+        return user;
     }
 
     @Transactional(readOnly = true)
