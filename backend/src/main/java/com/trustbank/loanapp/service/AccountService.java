@@ -71,6 +71,7 @@ public class AccountService {
             throw ApiException.badRequest("WRONG_PASSWORD", "Current password is not correct");
         }
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setCredentialVersion(user.getCredentialVersion() + 1);
     }
 
     @Transactional(readOnly = true)

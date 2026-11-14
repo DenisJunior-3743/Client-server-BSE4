@@ -8,6 +8,7 @@ import ApplicationDetailPage from '@/pages/ApplicationDetailPage'
 import ProfilePage from '@/pages/ProfilePage'
 import StaffListPage from '@/pages/admin/StaffListPage'
 import StaffFormPage from '@/pages/admin/StaffFormPage'
+import StaffCredentialsPage from '@/pages/admin/StaffCredentialsPage'
 import ProductsListPage from '@/pages/admin/ProductsListPage'
 import ProductFormPage from '@/pages/admin/ProductFormPage'
 import AuditLogPage from '@/pages/admin/AuditLogPage'
@@ -87,6 +88,7 @@ function App() {
           <Route path="admin/staff" element={<StaffListPage />} />
           <Route path="admin/staff/new" element={<StaffFormPage />} />
           <Route path="admin/staff/:id/edit" element={<StaffFormPage />} />
+          <Route path="admin/staff/:id/credentials" element={<StaffCredentialsPage />} />
           <Route path="admin/products" element={<ProductsListPage />} />
           <Route path="admin/products/new" element={<ProductFormPage />} />
           <Route path="admin/audit-log" element={<AuditLogPage />} />

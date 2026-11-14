@@ -169,6 +169,6 @@ export interface ApplicationDetail {
 
 export interface StaffCreated {
   user: User
-  /** Shown once by the real API so the admin can hand it to the new staff member. */
-  temporaryPassword?: string
+  /** Generated passwords are shown once; null when the admin supplied the initial password. */
+  temporaryPassword?: string | null
 }

@@ -82,10 +82,12 @@ OTP echo) and set `CORS_ALLOWED_ORIGINS` to the dashboard's URL.
 | `POST /applications/{id}/credit-check` | CREDIT_ANALYST | body carries `version` |
 | `POST /applications/{id}/decision` | BRANCH_MANAGER | body carries `version` |
 | `POST /applications/{id}/disbursement` | BRANCH_MANAGER | `version` and **Idempotency-Key** |
-| `GET /staff` | staff | `POST /staff` is ADMIN only |
+| `GET /staff` | staff | Active staff directory |
+| `POST /staff` | ADMIN | Create staff; optional initial password, generated when omitted |
 | `GET /staff/{id}` | ADMIN | Load an active staff account for editing |
 | `PUT /staff/{id}` | ADMIN | Update fullName, email, phone, role and branch; keeps password |
 | `DELETE /staff/{id}` | ADMIN | 204; revoke access and remove from the directory, retain history |
+| `PUT /staff/{id}/credentials` | ADMIN | 204; set/replace only the password, using existing email as username |
 | `GET /audit-logs` | ADMIN | |
 
 Staff deletion sets the existing `users.active` flag to false. Loan assignments, decisions and audit
@@ -97,7 +99,33 @@ Admins cannot delete their own account or remove their own admin role. Staff mut
 active administrator rows and recheck the caller to prevent concurrent removals from leaving no
 administrator. Updates and deletions create audit events. Bootstrap only creates an administrator
 on an installation with no existing admin identities, so restarts do not recreate renamed/deleted
-bootstrap accounts. These endpoints use the existing schema and require no new environment variables.
+bootstrap accounts. Staff detail editing and deletion use the existing schema. No new environment variables are required.
+
+### Staff credentials
+
+The login username is the staff account's existing email. In the web staff list, the key icon opens
+**Staff Credentials**, where email is read-only and only the password can be changed. The admin
+enters and confirms a new password; changing their own password signs them out to sign in again.
+
+Send an administrator Bearer token with `PUT /api/v1/staff/{id}/credentials` and JSON:
+
+```json
+{ "password": "NewPassword123" }
+```
+
+Success is HTTP 204 with no response body. Passwords require 8–72 characters, uppercase and lowercase
+letters, and a number, with a maximum of 72 UTF-8 bytes for BCrypt. Password changes preserve email,
+role, branch and other staff details. Only hashes are stored; audit events contain no password or hash.
+
+`POST /api/v1/staff` also accepts an optional `password` alongside the normal staff details. Omit it
+to retain automatic generation and the one-time `temporaryPassword` response. A supplied initial
+password is never echoed; `temporaryPassword` is null. The web Add Staff form supports both choices.
+
+Flyway migration `V4__credential_version.sql` adds a default-zero credential version. New JWTs carry
+that version; password changes increment it, rejecting previous sessions on their next request.
+Pre-migration tokens remain valid at version zero until a password change. The existing self-service
+`PUT /api/v1/me/password` also revokes older sessions. Deploy the backend so Flyway applies V4 before
+using the new web controls. No extra host environment variables are needed.
 
 ### Error format
 

@@ -33,6 +33,10 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    /** Incremented on password changes so previously issued JWTs stop working. */
+    @Column(name = "credential_version", nullable = false)
+    private long credentialVersion;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

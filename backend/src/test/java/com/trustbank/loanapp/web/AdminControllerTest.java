@@ -88,6 +88,32 @@ class AdminControllerTest {
         verifyNoInteractions(staff);
     }
 
+    @Test void adminCanSetPasswordWithoutReceivingOrEditingUsername() throws Exception {
+        mvc.perform(put("/api/v1/staff/" + staffId + "/credentials").contentType("application/json")
+                .content("{\"password\":\"NewPassword123\"}"))
+                .andExpect(status().isNoContent()).andExpect(content().string(""));
+        verify(staff).setStaffCredentials(adminId, staffId, "NewPassword123");
+    }
+
+    @Test void weakMissingAndLongCredentialsAreRejected() throws Exception {
+        for (String json : List.of("{}", "{\"password\":\"\"}", "{\"password\":\"weak\"}",
+                "{\"password\":\"NoDigitsHere\"}", "{\"password\":\"" + "Aa1".repeat(25) + "\"}")) {
+            mvc.perform(put("/api/v1/staff/" + staffId + "/credentials").contentType("application/json").content(json))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors.password").exists());
+        }
+        verifyNoInteractions(staff);
+    }
+
+    @Test void createSupportsOptionalInitialPassword() throws Exception {
+        mvc.perform(post("/api/v1/staff").contentType("application/json").content(payload))
+                .andExpect(status().isCreated());
+        verify(staff).createStaff(eq(adminId), any(), isNull());
+        String withPassword = payload.stripTrailing().replaceFirst("}\\s*$", ",\"password\":\"ChosenPassword123\"}");
+        mvc.perform(post("/api/v1/staff").contentType("application/json").content(withPassword))
+                .andExpect(status().isCreated());
+        verify(staff).createStaff(eq(adminId), any(), eq("ChosenPassword123"));
+    }
+
     @Test void nonAdminsCannotReadEditFormOrMutateStaff() throws Exception {
         for (Role role : List.of(Role.BORROWER, Role.LOAN_OFFICER, Role.CREDIT_ANALYST, Role.BRANCH_MANAGER)) {
             authenticate(role);
@@ -95,6 +121,8 @@ class AdminControllerTest {
             mvc.perform(put("/api/v1/staff/" + staffId).contentType("application/json").content(payload))
                     .andExpect(status().isForbidden());
             mvc.perform(delete("/api/v1/staff/" + staffId)).andExpect(status().isForbidden());
+            mvc.perform(put("/api/v1/staff/" + staffId + "/credentials").contentType("application/json")
+                    .content("{\"password\":\"NewPassword123\"}")).andExpect(status().isForbidden());
         }
         verifyNoInteractions(staff);
     }
