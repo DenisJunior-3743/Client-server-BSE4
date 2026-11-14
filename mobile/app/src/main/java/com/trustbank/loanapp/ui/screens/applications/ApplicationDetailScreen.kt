@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,6 +27,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.trustbank.loanapp.data.AppContainer
 import com.trustbank.loanapp.data.model.DocumentType
 import com.trustbank.loanapp.ui.components.DocumentPickerButton
+import com.trustbank.loanapp.ui.components.RemoteImagePreviewButton
+import com.trustbank.loanapp.ui.components.isPreviewImage
 import com.trustbank.loanapp.data.model.LoanStatus
 import com.trustbank.loanapp.ui.common.documentTypeLabel
 import com.trustbank.loanapp.ui.common.paymentTermsLabel
@@ -231,6 +234,12 @@ fun ApplicationDetailScreen(
                         Text(documentTypeLabel(document.docType), style = MaterialTheme.typography.bodyMedium, color = AppColors.Neutral800)
                         val docTone = document.verificationStatus.toTone()
                         StatusChip(label = document.verificationStatus.name, tone = docTone)
+                    }
+                    if (isPreviewImage(document.contentType, document.fileName)) {
+                        key(document.id) {
+                            RemoteImagePreviewButton(fileName = document.fileName,
+                                onLoad = { viewModel.loadDocumentPreview(document.id) })
+                        }
                     }
                 }
             }

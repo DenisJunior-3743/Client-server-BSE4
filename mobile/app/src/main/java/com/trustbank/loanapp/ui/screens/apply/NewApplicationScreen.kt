@@ -48,6 +48,7 @@ import com.trustbank.loanapp.ui.common.documentTypeLabel
 import com.trustbank.loanapp.ui.common.paymentTermsLabel
 import com.trustbank.loanapp.ui.common.rememberFieldState
 import com.trustbank.loanapp.ui.components.DocumentPickerButton
+import com.trustbank.loanapp.ui.components.SelectedDocumentPreview
 import com.trustbank.loanapp.ui.components.AppDropdownField
 import com.trustbank.loanapp.ui.components.AppTextField
 import com.trustbank.loanapp.ui.components.BackRow
@@ -271,6 +272,7 @@ private fun ApplicationFormSteps(
             purposeText = purpose.value,
             paymentTerms = paymentTerms,
             attachedCount = uiState.attachedDocs.size,
+            attachedDocs = uiState.attachedDocs,
             applicationSaved = uiState.applicationSaved,
             isSubmitting = uiState.isSubmitting,
             submitError = uiState.submitError,
@@ -545,7 +547,7 @@ private fun StepDocuments(
         REQUIRED_APPLICATION_DOCS.forEach { type ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(documentTypeLabel(type), style = MaterialTheme.typography.bodyMedium)
-                DocumentPickerButton(label = attachedDocs[type]?.fileName ?: "Choose file",
+                DocumentPickerButton(label = attachedDocs[type]?.fileName ?: "Choose file", selected = attachedDocs[type],
                     onSelected = { onAttachDoc(type, it) }, onError = onDocError)
             }
         }
@@ -573,6 +575,7 @@ private fun StepReview(
     purposeText: String,
     paymentTerms: PaymentTerms?,
     attachedCount: Int,
+    attachedDocs: Map<DocumentType, DocumentUpload>,
     applicationSaved: Boolean,
     isSubmitting: Boolean,
     submitError: String?,
@@ -603,14 +606,23 @@ private fun StepReview(
             DetailRow("Files attached", "$attachedCount of ${REQUIRED_APPLICATION_DOCS.size}")
         }
 
+        if (attachedDocs.isNotEmpty()) {
+            SectionCard(title = "Attached documents") {
+                attachedDocs.forEach { (type, upload) ->
+                    Text(documentTypeLabel(type), style = MaterialTheme.typography.bodyMedium)
+                    SelectedDocumentPreview(upload)
+                }
+            }
+        }
+
         if (submitError != null) {
             Text(submitError, color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(text = "Back", onClick = onBack, enabled = !isSubmitting, modifier = Modifier.weight(1f))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             PrimaryButton(text = if (applicationSaved) "Finish uploading" else "Submit application",
-                isLoading = isSubmitting, onClick = onSubmit, modifier = Modifier.weight(1f))
+                isLoading = isSubmitting, onClick = onSubmit)
+            SecondaryButton(text = "Back", onClick = onBack, enabled = !isSubmitting)
         }
     }
 }

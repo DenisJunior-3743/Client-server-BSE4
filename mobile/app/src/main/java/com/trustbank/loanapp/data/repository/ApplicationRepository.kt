@@ -38,6 +38,7 @@ interface ApplicationRepository {
     suspend fun listApplications(): List<LoanApplication>
     suspend fun getApplication(id: String): LoanApplication?
     suspend fun getDocuments(applicationId: String): List<LoanDocument>
+    suspend fun downloadDocument(documentId: String): DocumentUpload
     suspend fun uploadDocument(applicationId: String, type: DocumentType, upload: DocumentUpload): LoanDocument
     suspend fun submitApplication(input: NewApplicationInput): LoanApplication
     suspend fun respondToInfoRequest(applicationId: String): LoanApplication

@@ -101,6 +101,7 @@ data class DocumentDto(
     val fileName: String,
     val verificationStatus: String,
     val uploadedAt: String,
+    val contentType: String? = null,
 )
 
 data class ApplicationDetailDto(val application: ApplicationDto, val documents: List<DocumentDto>?)
