@@ -135,7 +135,7 @@ private fun ApplicationFormSteps(
     uiState: NewApplicationUiState,
     viewModel: NewApplicationViewModel,
 ) {
-    // Step 0 â€” applicant & business details
+    // Step 0 — applicant & business details
     val fullName = rememberFieldState(uiState.prefillFullName) {
         when {
             !Validators.isRequired(it) -> "Full name is required"
@@ -167,13 +167,13 @@ private fun ApplicationFormSteps(
     val businessName = rememberFieldState { if (!Validators.isRequired(it)) "Business name is required" else null }
     val businessLocation = rememberFieldState { if (!Validators.isRequired(it)) "Business location is required" else null }
 
-    // Step 1 â€” collateral & witnesses
+    // Step 1 — collateral & witnesses
     val collateral = rememberFieldState {
         if (it.trim().length < 10) "Describe the collateral security (at least 10 characters)" else null
     }
     val witnesses = remember { mutableStateListOf(WitnessFields(), WitnessFields()) }
 
-    // Step 2 â€” loan terms
+    // Step 2 — loan terms
     val amount = rememberFieldState { text ->
         val value = Validators.parseAmount(text)
         when {
@@ -313,7 +313,7 @@ private fun StepIndicator(currentStep: Int) {
             }
         }
         Text(
-            "Step ${currentStep + 1} of ${STEP_TITLES.size} Â· ${STEP_TITLES[currentStep]}",
+            "Step ${currentStep + 1} of ${STEP_TITLES.size} · ${STEP_TITLES[currentStep]}",
             style = MaterialTheme.typography.bodySmall,
             color = AppColors.Neutral500,
         )
@@ -478,8 +478,8 @@ private fun StepLoanTerms(
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SectionCard {
             Text(product.name, style = MaterialTheme.typography.titleMedium, color = AppColors.Neutral900)
-            DetailRow("Amount range", "${Formatters.ugx(product.minAmount)} â€“ ${Formatters.ugx(product.maxAmount)}")
-            DetailRow("Period range", "${product.minTermMonths}â€“${product.maxTermMonths} months")
+            DetailRow("Amount range", "${Formatters.ugx(product.minAmount)} – ${Formatters.ugx(product.maxAmount)}")
+            DetailRow("Period range", "${product.minTermMonths}–${product.maxTermMonths} months")
         }
 
         DigitsField(
@@ -591,14 +591,14 @@ private fun StepReview(
         SectionCard(title = "Collateral & Witnesses") {
             DetailRow("Collateral security", collateral)
             witnesses.forEachIndexed { index, witness ->
-                DetailRow("Witness ${index + 1}", "${witness.name.value} Â· ${witness.contact.value}")
+                DetailRow("Witness ${index + 1}", "${witness.name.value} · ${witness.contact.value}")
             }
         }
         SectionCard(title = "Loan Terms") {
             DetailRow("Product", product.name)
             DetailRow("Amount", "UGX $amountText")
             DetailRow("Period", "$periodText months")
-            DetailRow("Terms of payment", paymentTerms?.let(::paymentTermsLabel) ?: "â€”")
+            DetailRow("Terms of payment", paymentTerms?.let(::paymentTermsLabel) ?: "—")
             DetailRow("Purpose", purposeText)
             DetailRow("Files attached", "$attachedCount of ${REQUIRED_APPLICATION_DOCS.size}")
         }

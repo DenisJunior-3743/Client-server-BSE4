@@ -22,7 +22,7 @@ data class UpdateUiState(
     val errorMessage: String? = null,
 )
 
-/** The installed APK's own versionCode â€” what Reviden Store compares its latest release against. */
+/** The installed APK's own versionCode — what Reviden Store compares its latest release against. */
 fun installedVersionCode(context: Context): Int {
     val info = context.packageManager.getPackageInfo(context.packageName, 0)
     return PackageInfoCompat.getLongVersionCode(info).toInt()
@@ -62,7 +62,7 @@ class UpdateViewModel(
                     destination.delete()
                     _uiState.value = _uiState.value.copy(
                         status = UpdateStatus.AVAILABLE,
-                        errorMessage = "Downloaded file didn't match the expected checksum â€” please try again.",
+                        errorMessage = "Downloaded file didn't match the expected checksum — please try again.",
                     )
                     return@launch
                 }
@@ -83,7 +83,7 @@ class UpdateViewModel(
         context.startActivity(intent)
     }
 
-    /** No-op once a required update is pending â€” integration.md: a forced update can't be dismissed. */
+    /** No-op once a required update is pending — integration.md: a forced update can't be dismissed. */
     fun dismiss() {
         if (_uiState.value.response?.updateRequired == true) return
         _uiState.value = UpdateUiState()

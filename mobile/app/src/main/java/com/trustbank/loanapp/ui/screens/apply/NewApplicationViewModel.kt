@@ -38,7 +38,7 @@ data class NewApplicationUiState(
 )
 
 // Loan details (amount/term/purpose) live in the screen as FieldState, not
-// here, so they can validate on every keystroke â€” this ViewModel only owns
+// here, so they can validate on every keystroke — this ViewModel only owns
 // what needs to survive step navigation but isn't per-field UI state.
 class NewApplicationViewModel(
     private val productRepository: ProductRepository = AppContainer.productRepository,

@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.trustbank.loanapp.ui.components.KeyboardAwareContent
 import com.trustbank.loanapp.navigation.NavGraph
 import com.trustbank.loanapp.ui.theme.TrustBankLoansTheme
 
@@ -17,7 +18,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TrustBankLoansTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    NavGraph()
+                    KeyboardAwareContent { NavGraph() }
                 }
             }
         }

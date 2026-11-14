@@ -70,6 +70,13 @@ class ReleaseToolsTest(unittest.TestCase):
     def release(self, channel='production', code=2, status='published', name='1.1.1'):
         return dict(projectId=PROJECT,channel=channel,versionCode=code,versionName=name,status=status)
 
+    def test_android_sources_are_utf8_without_mojibake(self):
+        sources = list((ROOT/'mobile/app/src').rglob('*.kt')) + list((ROOT/'mobile/app/src').rglob('*.xml'))
+        for source in sources:
+            text=source.read_text(encoding='utf-8-sig')
+            for marker in ['\u00e2\u20ac','\u00c2\u00b7','\ufffd']:
+                self.assertNotIn(marker,text,str(source))
+
     def test_shell_syntax(self):
         for script in SCRIPTS.glob('*.sh'):
             result=subprocess.run([str(BASH),'-n',script.as_posix()],capture_output=True,text=True)

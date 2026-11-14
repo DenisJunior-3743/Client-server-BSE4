@@ -130,6 +130,7 @@ fun AppTextField(
             ),
             modifier = Modifier
                 .fillMaxWidth()
+                .keepFocusedFieldVisible()
                 .onFocusChanged { focusState ->
                     if (focusState.isFocused) {
                         hasBeenFocused = true

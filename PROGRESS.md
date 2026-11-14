@@ -81,3 +81,11 @@ The prior main/web/mobile updates were already pushed and their GitHub checks pa
 The private local release key matches production 1.1.1 (code 2), verified against the existing downloaded APK. The public fingerprint is pinned. Gradle now accepts CI versions/signing, uses the supplied HTTPS backend, and embeds the appropriate Reviden update channel. The signed/shrunk 1.2.0-beta.1 testing APK (code 3), SHA-256, JSON metadata and R8 mapping are collected under ignored mobile/releases. Thirteen offline release-script tests, Bash syntax checks and release workflow YAML validation passed. Local release compilation and vital lint passed; Android unit test tasks have no sources.
 
 GitHub release secrets were not configured during setup. The hosted backend health endpoint returned HTTP 500 and later timed out, so real loan-flow testing is blocked on that deployment. Publication requires a healthy backend after preserving the signed artifact. Full secret values, tag commands and borrower-initiated testing instructions are in mobile/REVIDEN-RELEASE.md. No new store release has been published during setup.
+
+## Mobile punctuation and keyboard visibility (2026-11-14)
+
+Repaired malformed UTF-8 punctuation in the application steps, amount/period ranges, witness summaries and update messages. Added editor encoding settings and a source-encoding regression check. Confirmed the product catalogue comes from `GET /api/v1/products` through `RemoteProductRepository`, with no hardcoded mobile products.
+
+Shared navigation now applies keyboard insets; editable fields request scrolling when focused and when keyboard height changes. Existing form scroll containers remain in use, and main bottom navigation hides during typing. Added an instrumented software-keyboard visibility test.
+
+Validation: all 14 offline release/encoding tests passed and `git diff --check` passed. Android compilation/device verification is incomplete: dependency resolution failed against Maven/Google, and the user requested that local builds stop so they can build and test. No app was installed and no new release tag was created.
