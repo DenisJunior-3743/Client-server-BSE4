@@ -201,7 +201,7 @@ export default function ApplicationDetailPage() {
                         <FileText className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-neutral-800">{doc.docType.replace(/_/g, ' ')}</p>
+                        <p className="text-sm font-medium text-neutral-800">{doc.docType === 'COLLATERAL_PROOF' ? 'Collateral evidence photo' : doc.docType.replace(/_/g, ' ')}</p>
                         <p className="text-xs text-neutral-500">{doc.fileName}</p>
                       </div>
                     </div>

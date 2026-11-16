@@ -217,6 +217,8 @@ fun ApplicationDetailScreen(
                 Text("PDF, JPEG or PNG, up to 5MB per file.", style = MaterialTheme.typography.bodySmall)
                 DocumentType.entries.forEach { type ->
                     DocumentPickerButton(label = "Upload " + documentTypeLabel(type), enabled = !uiState.isActing,
+                        allowedMimeTypes = if (type == DocumentType.COLLATERAL_PROOF) setOf("image/jpeg", "image/png")
+                            else setOf("application/pdf", "image/jpeg", "image/png"),
                         onSelected = { viewModel.uploadDocument(applicationId, type, it) }, onError = viewModel::documentError)
                 }
             }

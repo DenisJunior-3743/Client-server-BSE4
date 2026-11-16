@@ -48,6 +48,21 @@ class DocumentServiceTest {
         verify(documents).saveAndFlush(argThat(d -> fileId.equals(d.getGridfsFileId())
                 && d.getFileUrl() == null && d.getVerificationStatus() == VerificationStatus.PENDING));
     }
+    @Test void collateralEvidenceAcceptsImagesAndKeepsTheDocumentType() {
+        for (var image : new MockMultipartFile[]{
+                new MockMultipartFile("file", "collateral.png", "image/png", new byte[]{(byte)137,80,78,71,13,10,26,10}),
+                new MockMultipartFile("file", "collateral.jpg", "image/jpeg", new byte[]{(byte)255,(byte)216,(byte)255,0})}) {
+            var result = service.upload(borrower, applicationId, DocumentType.COLLATERAL_PROOF, image);
+            assertEquals(DocumentType.COLLATERAL_PROOF, result.docType());
+            assertEquals(image.getContentType(), result.contentType());
+        }
+        verify(storage, times(2)).store(any(), anyString(), anyString(), eq(applicationId), eq(borrower));
+    }
+    @Test void collateralEvidenceRejectsPdfBeforeAnyStorageWrite() {
+        assertEquals("COLLATERAL_IMAGE_REQUIRED", assertThrows(ApiException.class,
+                () -> service.upload(borrower, applicationId, DocumentType.COLLATERAL_PROOF, pdf)).getCode());
+        verifyNoInteractions(storage);
+    }
     @Test void borrowerCannotUploadToAnotherBorrowersApplication() {
         assertEquals(404, assertThrows(ApiException.class, () -> service.upload(UUID.randomUUID(), applicationId,
                 DocumentType.NATIONAL_ID, pdf)).getStatus().value());

@@ -25,7 +25,8 @@ public class DocumentController {
     private final DocumentService documents;
     public DocumentController(DocumentService documents) { this.documents = documents; }
 
-    @Operation(summary = "Upload a PDF, JPEG or PNG document (maximum 5 MiB) to GridFS")
+    @Operation(summary = "Upload a PDF, JPEG or PNG document (maximum 5 MiB) to GridFS",
+            description = "Send multipart/form-data with docType and file parts. COLLATERAL_PROOF accepts JPEG/PNG photos only.")
     @PostMapping(value = "/applications/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('BORROWER')")
     @ResponseStatus(HttpStatus.CREATED)

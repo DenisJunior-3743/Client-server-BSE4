@@ -57,8 +57,10 @@ object ApiClient {
             .addInterceptor(authInterceptor)
             // Bounded waits on the client side too: a dead connection fails instead of hanging the screen.
             .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
+            // Hosted Spring Boot cold starts observed at 22-26s; allow them without unbounded waits.
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(90, TimeUnit.SECONDS)
             .build()
     }
 

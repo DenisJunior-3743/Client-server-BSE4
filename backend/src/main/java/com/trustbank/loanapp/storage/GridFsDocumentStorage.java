@@ -18,6 +18,8 @@ import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
 /** One thread-safe connection pool and bucket per process, with bounded network waits. */
 @Service
 public class GridFsDocumentStorage implements DocumentStorage {
+    private static final Logger log = LoggerFactory.getLogger(GridFsDocumentStorage.class);
     private final MongoClient client;
     private final GridFSBucket bucket;
 
@@ -33,6 +36,7 @@ public class GridFsDocumentStorage implements DocumentStorage {
             @Value("${app.documents.database:trustbank_documents}") String database,
             @Value("${app.documents.bucket:loan_documents}") String bucketName) {
         if (uri.isBlank()) {
+            log.warn("GridFS is not configured: set MONGODB_URI on the backend host");
             client = null;
             bucket = null;
         } else {
@@ -60,6 +64,7 @@ public class GridFsDocumentStorage implements DocumentStorage {
         try {
             upload = bucket().openUploadStream(filename, options);
         } catch (MongoException ex) {
+            logFailure("upload open", ex);
             throw unavailable();
         }
         try {
@@ -67,6 +72,7 @@ public class GridFsDocumentStorage implements DocumentStorage {
             upload.close();
             return upload.getObjectId().toHexString();
         } catch (IOException | MongoException ex) {
+            logFailure("upload", ex);
             try { upload.abort(); } catch (Exception ignored) { /* best effort chunk cleanup */ }
             throw unavailable();
         }
@@ -82,6 +88,7 @@ public class GridFsDocumentStorage implements DocumentStorage {
         } catch (MongoGridFSException ex) {
             throw ApiException.notFound("Document file");
         } catch (MongoException ex) {
+            logFailure("download", ex);
             throw unavailable();
         }
     }
@@ -89,7 +96,19 @@ public class GridFsDocumentStorage implements DocumentStorage {
     @Override
     public void delete(String fileId) {
         try { bucket().delete(new ObjectId(fileId)); }
-        catch (MongoException ex) { throw unavailable(); }
+        catch (MongoException ex) { logFailure("delete", ex); throw unavailable(); }
+    }
+
+    /** Log useful failure classes/codes, never connection strings or credential-bearing exception messages. */
+    private static void logFailure(String operation, Exception error) {
+        Throwable cause = error;
+        int code = error instanceof MongoException mongo ? mongo.getCode() : 0;
+        for (int depth = 0; depth < 8 && cause.getCause() != null && cause.getCause() != cause; depth++) {
+            cause = cause.getCause();
+            if (cause instanceof MongoException mongo && mongo.getCode() > 0) code = mongo.getCode();
+        }
+        log.warn("GridFS {} failed: exception={}, mongoCode={}, cause={}", operation,
+                error.getClass().getSimpleName(), code, cause.getClass().getSimpleName());
     }
 
     private static ApiException unavailable() {

@@ -56,6 +56,9 @@ public class DocumentService {
             throw ApiException.rule("DOCUMENTS_CLOSED", "Documents can no longer be added to this application");
         if (type == null) throw ApiException.badRequest("DOCUMENT_TYPE_REQUIRED", "Choose a document type");
         validate(file);
+        if (type == DocumentType.COLLATERAL_PROOF && !Set.of("image/jpeg", "image/png").contains(file.getContentType())) {
+            throw ApiException.badRequest("COLLATERAL_IMAGE_REQUIRED", "Collateral evidence must be a JPEG or PNG photo");
+        }
         String name = safeFilename(file.getOriginalFilename());
         String fileId;
         try (InputStream input = file.getInputStream()) {

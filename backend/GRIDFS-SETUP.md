@@ -64,3 +64,34 @@ The hosting platform can impose a lower request limit than Spring. Vercel docume
 Ordinary Maven tests mock storage and need no Atlas access. For a real temporary upload/read/delete check, load `backend/.env`, set `RUN_GRIDFS_INTEGRATION_TESTS=true` and run Maven tests. The optional test creates a non-customer connectivity-check file, compares the returned bytes and deletes it.
 
 The API smoke test (`python backend/scripts/smoke-test.py`) creates development borrowers, staff, loans and uploaded files that remain in the database. It signs in with the bootstrap admin environment variables/defaults, creates its staff through the admin endpoint, and tests the complete loan workflow. Run it against a development database.
+
+## Multipart checks and collateral evidence (2026-11-15)
+
+The mobile client uses Retrofit `@Multipart` for `POST /api/v1/applications/{id}/documents`:
+`docType` is a text part and `file` is a binary part with its original filename and MIME type.
+The backend consumes `multipart/form-data` and binds those same names. Retrofit supplies the
+multipart boundary. The application itself is created by a separate JSON request, followed by
+one multipart request per selected file; upload retries retain the saved application ID.
+
+The collateral description now has an optional JPEG/PNG evidence photo. It is uploaded as
+`COLLATERAL_PROOF` to the same private GridFS endpoint and appears in staff document review.
+It can also be replaced from the document step after an interrupted upload. The three existing
+required document types remain National ID, payslip/income proof and bank statement. If collateral
+evidence is supplied, staff verify it with the other uploaded documents before the credit check.
+No database migration or additional host variable is needed for this existing document type.
+
+Reachability checks on 2026-11-15: the saved Atlas URI passed actual temporary PDF and PNG
+upload/read/delete checks from this PC. The Vercel runtime logs supplied by the user show replica
+set connections and successful Spring Boot startup. The hosted health endpoint later returned
+HTTP 200 with UP; the live OpenAPI advertises multipart uploads. Earlier checks returned Vercel
+FUNCTION_INVOCATION_FAILED, so reachability was intermittent. Those observations do not establish
+the exact cause of the earlier document-storage error or prove a customer upload from Vercel.
+
+Observed hosted startup took 22–26 seconds, longer than the old 20-second mobile read timeout.
+The mobile client now allows 60-second reads/writes and a 90-second total call, retaining bounded
+waits. Existing forms keep their saved application and upload progress for retry.
+
+If an upload still fails after deployment, find the `GridFS ... failed` runtime log entry. It includes
+operation, exception class, Mongo code and root cause class, without URI/password or exception
+messages. An unset URI has an explicit configuration warning. Build logs show container compilation;
+request-time errors appear in the project's Logs tab: https://vercel.com/docs/logs/runtime .
