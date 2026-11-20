@@ -223,6 +223,10 @@ private fun ApplicationFormSteps(
         1 -> StepCollateralAndWitnesses(
             collateral = collateral,
             witnesses = witnesses,
+            collateralPhoto = uiState.attachedDocs[DocumentType.COLLATERAL_PROOF],
+            photoError = uiState.docsError,
+            onAttachPhoto = { viewModel.attachDocument(DocumentType.COLLATERAL_PROOF, it) },
+            onPhotoError = viewModel::documentError,
             onBack = { viewModel.goToStep(0) },
             onContinue = {
                 val witnessesValid = witnesses.map { it.name.validateForSubmit() and it.contact.validateForSubmit() }.all { it }
@@ -271,7 +275,7 @@ private fun ApplicationFormSteps(
             periodText = period.value,
             purposeText = purpose.value,
             paymentTerms = paymentTerms,
-            attachedCount = uiState.attachedDocs.size,
+            attachedCount = REQUIRED_APPLICATION_DOCS.count { it in uiState.attachedDocs },
             attachedDocs = uiState.attachedDocs,
             applicationSaved = uiState.applicationSaved,
             isSubmitting = uiState.isSubmitting,
@@ -393,6 +397,10 @@ private fun StepApplicantDetails(
 private fun StepCollateralAndWitnesses(
     collateral: FieldState,
     witnesses: MutableList<WitnessFields>,
+    collateralPhoto: DocumentUpload?,
+    photoError: String?,
+    onAttachPhoto: (DocumentUpload) -> Unit,
+    onPhotoError: (String) -> Unit,
     onBack: () -> Unit,
     onContinue: () -> Unit,
 ) {
@@ -409,6 +417,15 @@ private fun StepCollateralAndWitnesses(
             singleLine = false,
             minLines = 3,
         )
+
+        SectionCard(title = "Collateral evidence photo (optional)") {
+            Text("Attach a clear JPEG or PNG photo of the collateral, up to 5MB. It uploads when you submit.",
+                style = MaterialTheme.typography.bodySmall, color = AppColors.Neutral500)
+            DocumentPickerButton(label = collateralPhoto?.fileName ?: "Attach collateral photo",
+                selected = collateralPhoto, allowedMimeTypes = setOf("image/jpeg", "image/png"),
+                onSelected = onAttachPhoto, onError = onPhotoError)
+            if (photoError != null) Text(photoError, color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
+        }
 
         Text("Witnesses (minimum $MIN_WITNESSES)", style = MaterialTheme.typography.titleMedium, color = AppColors.Neutral900)
         witnesses.forEachIndexed { index, witness ->
@@ -551,6 +568,11 @@ private fun StepDocuments(
                     onSelected = { onAttachDoc(type, it) }, onError = onDocError)
             }
         }
+        SectionCard(title = "Collateral evidence photo (optional)") {
+            DocumentPickerButton(label = attachedDocs[DocumentType.COLLATERAL_PROOF]?.fileName ?: "Attach collateral photo",
+                selected = attachedDocs[DocumentType.COLLATERAL_PROOF], allowedMimeTypes = setOf("image/jpeg", "image/png"),
+                onSelected = { onAttachDoc(DocumentType.COLLATERAL_PROOF, it) }, onError = onDocError)
+        }
         if (docsError != null) Text(docsError, color = AppColors.Danger600, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             SecondaryButton(text = "Back", onClick = onBack, enabled = !applicationSaved, modifier = Modifier.weight(1f))
@@ -603,7 +625,7 @@ private fun StepReview(
             DetailRow("Period", "$periodText months")
             DetailRow("Terms of payment", paymentTerms?.let(::paymentTermsLabel) ?: "—")
             DetailRow("Purpose", purposeText)
-            DetailRow("Files attached", "$attachedCount of ${REQUIRED_APPLICATION_DOCS.size}")
+            DetailRow("Required files attached", "$attachedCount of ${REQUIRED_APPLICATION_DOCS.size}")
         }
 
         if (attachedDocs.isNotEmpty()) {

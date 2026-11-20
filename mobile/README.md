@@ -49,3 +49,15 @@ Selected JPEG/PNG files show thumbnails in the document step and application rev
 Image reads remain capped at 5 MiB, decoded images are sampled to bound memory, and camera EXIF rotation is respected. Preview data stays in memory. Remote previews show loading/errors and allow retry without changing the application.
 
 Submit application and Finish uploading each use a full-width button. Shared button labels use the smaller label style, grow vertically when needed and retain a minimum 48 dp touch height. Review details wrap in separate label/value columns. These mobile changes were not built or run on a device locally, following the user's request to build and test on their end. The new stream-limit unit tests run with the existing Android CI job.
+
+## Collateral photo and upload checks
+
+The collateral step includes an optional JPEG/PNG evidence photo with preview, submitted as
+`COLLATERAL_PROOF` through the same authenticated multipart upload as the other documents.
+The document step also allows replacing it after a partial upload; required-file counting still
+refers to the three mandatory document types. Staff can download and verify the evidence.
+
+Hosted cold starts were observed at 22–26 seconds, so API reads/writes now allow 60 seconds with
+a 90-second total call limit. Submission retries retain the existing application ID and completed
+upload types. MongoDB is accessed only by the backend. No local Android build or release tag was
+created for these changes; device verification remains for the user's build.

@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 /** System document picker requires no broad storage permission and supports cloud providers. */
 @Composable
 fun DocumentPickerButton(label: String, enabled: Boolean = true, selected: DocumentUpload? = null,
+        allowedMimeTypes: Set<String> = setOf("application/pdf", "image/jpeg", "image/png"),
         onSelected: (DocumentUpload) -> Unit, onError: (String) -> Unit) {
     val resolver = LocalContext.current.contentResolver
     val scope = rememberCoroutineScope()
@@ -33,7 +34,9 @@ fun DocumentPickerButton(label: String, enabled: Boolean = true, selected: Docum
                         if (cursor.moveToFirst()) name = cursor.getString(0) ?: name
                     }
                     val type = resolver.getType(uri).orEmpty()
-                    require(type in setOf("application/pdf", "image/jpeg", "image/png")) { "Choose a PDF, JPEG or PNG file" }
+                    require(type in allowedMimeTypes) {
+                        if ("application/pdf" in allowedMimeTypes) "Choose a PDF, JPEG or PNG file" else "Choose a JPEG or PNG photo"
+                    }
                     val bytes = resolver.openInputStream(uri)?.use { input ->
                         readDocumentBytes(input)
                     } ?: error("Cannot read the selected file")
@@ -51,7 +54,7 @@ fun DocumentPickerButton(label: String, enabled: Boolean = true, selected: Docum
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         SecondaryButton(text = if (reading) "Reading file…" else label,
             enabled = enabled && !reading,
-            onClick = { launcher.launch(arrayOf("application/pdf", "image/jpeg", "image/png")) })
+            onClick = { launcher.launch(allowedMimeTypes.toTypedArray()) })
         (selected ?: picked)?.let { SelectedDocumentPreview(it) }
     }
 }
