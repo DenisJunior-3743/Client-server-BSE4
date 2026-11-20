@@ -41,7 +41,7 @@ services:
       JWT_SECRET: local-development-only-secret-at-least-32-bytes
       MESSAGING_ENABLED: "true"
       MESSAGING_WORKER_ENABLED: "false"
-      RABBITMQ_ADDRESSES: amqp://loan:local-development-only@rabbitmq:5672/
+      RABBITMQ_ADDRESSES: amqp://loan:local-development-only@rabbitmq:5672/%2f
       BOOTSTRAP_ADMIN_ENABLED: "true"
       DB_POOL_MIN_IDLE: "0"
       MONGODB_URI: ""

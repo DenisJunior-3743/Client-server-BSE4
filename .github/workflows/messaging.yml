@@ -49,7 +49,7 @@ jobs:
           TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/loans_test
           TEST_DATABASE_USER: postgres
           TEST_DATABASE_PASSWORD: postgres
-          TEST_RABBITMQ_ADDRESS: amqp://loan_test:loan_test@localhost:5672/
+          TEST_RABBITMQ_ADDRESS: amqp://loan_test:loan_test@localhost:5672/%2f
         run: chmod +x mvnw && ./mvnw -B -Dtest=LoanMessagingIntegrationTest test
       - name: Upload integration reports
         if: always()

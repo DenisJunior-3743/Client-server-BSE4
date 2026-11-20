@@ -155,7 +155,7 @@ class LoanMessagingIntegrationTest {
     }
 
     @Test void embeddedModeCompletesNotificationAndOutboxAtomically() {
-        UUID loan = loan(), event = history(loan());
+        UUID loan = loan(), event = history(loan);
         var tx = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         tx.executeWithoutResult(status -> {
             assertEquals(schema, jdbc.queryForObject("SELECT current_schema()", String.class));
@@ -176,6 +176,8 @@ class LoanMessagingIntegrationTest {
             var properties = new java.util.HashMap<String, Object>();
             String url = System.getenv("TEST_DATABASE_URL");
             properties.put("spring.datasource.url", url + (url.contains("?") ? "&" : "?") + "currentSchema=" + schema);
+            properties.put("spring.datasource.hikari.schema", schema);
+            properties.put("spring.jpa.properties.hibernate.default_schema", schema);
             properties.put("spring.datasource.username", System.getenv().getOrDefault("TEST_DATABASE_USER", "postgres"));
             properties.put("spring.datasource.password", System.getenv().getOrDefault("TEST_DATABASE_PASSWORD", "postgres"));
             properties.put("spring.flyway.enabled", "false");

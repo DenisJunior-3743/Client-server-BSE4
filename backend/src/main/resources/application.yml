@@ -50,7 +50,7 @@ spring:
     locations: classpath:db/migration
 
   rabbitmq:
-    addresses: ${RABBITMQ_ADDRESSES:amqp://guest:guest@localhost:5672/}
+    addresses: ${RABBITMQ_ADDRESSES:amqp://guest:guest@localhost:5672/%2f}
     connection-timeout: 5s
     requested-heartbeat: 30s
     publisher-confirm-type: correlated
