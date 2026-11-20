@@ -42,11 +42,12 @@ flowchart TD
     F --> G[Repositories and Hibernate]
     G --> H[HikariCP connection pool]
     H --> I[(PostgreSQL / Neon)]
-    F -->|Status events after commit| J[Background subscribers]
-    J --> K[Notifications, audit and credit checks]
+    F -->|Status history| J[PostgreSQL audit and outbox triggers]
+    J --> K[RabbitMQ relay and notification consumer]
+    F -->|After-commit event| L[Background credit check]
 ```
 
-This is a single backend application, often called a **layered monolith**. The layers are groups of responsibilities inside one running Java application. Audit, notifications and credit checks are components of that application, rather than separately deployed microservices.
+The API is a **layered monolith**: layers group responsibilities within one Java application. With RabbitMQ enabled, another instance of the same backend runs as a persistent relay/notification worker. Credit checks retain their in-process worker. See the [database and messaging guide](../backend/DATABASE-MESSAGING.md).
 
 ## 3. Your folder map
 
@@ -61,7 +62,8 @@ Most Java code is under `backend/src/main/java/com/trustbank/loanapp/`:
 | `repo/` | Database access | `LoanApplicationRepository.java` |
 | `security/` | JWT verification, current caller, rate/body protection | `JwtAuthFilter.java`, `RequestGuardFilter.java` |
 | `idempotency/` | Duplicate-request detection and cached replies | `IdempotencyService.java` |
-| `event/` | Events and background subscribers | `LoanStatusChangedEvent.java`, `AuditSubscriber.java` |
+| `event/` | Application events and credit worker | `LoanStatusChangedEvent.java`, `CreditCheckWorker.java` |
+| `messaging/` | Durable outbox, RabbitMQ relay and notification consumer | `LoanMessageStore.java`, `LoanOutboxRelay.java` |
 | `config/` | Security settings, worker pools, clock and development seed data | `SecurityConfig.java`, `AsyncConfig.java` |
 | `common/` | Shared errors and exception-to-HTTP conversion | `ApiException.java`, `GlobalExceptionHandler.java` |
 
@@ -193,7 +195,7 @@ The request passes through these steps:
 5. The idempotency service claims the request key in PostgreSQL. If it already belongs to the same completed request, it returns the cached response.
 6. For a new request, `LoanApplicationService.submit` checks business rules and saves the application. `LoanStateMachine` records the initial status history and publishes a status event.
 7. A response DTO is serialized into the reply cache. The key, application, history and cached reply participate in the same database transaction.
-8. On successful commit, subscribers can record notifications and audit information. The controller returns the response DTO as JSON.
+8. History insert triggers record the status audit and outgoing message in that transaction. Embedded mode records the notification before commit; RabbitMQ mode delivers it after commit through the worker. The controller returns the response DTO as JSON.
 
 The first successful submission returns **201 Created**. A successful replay returns **200 OK** with `Idempotent-Replayed: true`. The first execution uses that header with `false`. Reusing the key with a different payload is refused. Keys currently have a configured 24-hour retention window, so this is a bounded retry guarantee.
 
@@ -241,9 +243,9 @@ SUBMITTED -> CREDIT_CHECK_PENDING -> CREDIT_CHECK_PASSED -> UNDER_REVIEW
 
 Other paths cover missing documents, additional information, rejection, delinquency and default.
 
-**Events:** `LoanStateMachine` publishes `LoanStatusChangedEvent`. Independent subscribers respond after the transaction commits, so a rolled-back approval should not generate a success notification. Audit and notification writes use their own transactions.
+**Events:** `LoanStateMachine` inserts status history and publishes `LoanStatusChangedEvent`. Database triggers write the status audit and durable outbox event in the loan transaction, so rollback removes them together. In embedded setup mode, notifications are written before commit using a stored procedure. With RabbitMQ enabled, a persistent worker publishes the outbox event and a consumer uses the same deduplication procedure to create the notification after commit. Other audit events retain their existing subscriber.
 
-`CreditCheckWorker` separates its work into a short database read, a slow bureau call without a held database transaction, then a short database write. `@Async` normally runs that work on the configured background pool. If the bounded queue saturates, its `CallerRunsPolicy` can run work on the submitting thread. Events are in process and are not a durable message queue; a crash can lose an unprocessed side effect.
+`CreditCheckWorker` separates its work into a short database read, a slow bureau call without a held database transaction, then a short database write. `@Async` normally runs that work on the configured background pool. If the bounded queue saturates, its `CallerRunsPolicy` can run work on the submitting thread. The credit-check event remains in process; it is not made durable by the notification queue. Loan notifications use the durable outbox/RabbitMQ path when enabled. See [procedures, triggers and messaging setup](../backend/DATABASE-MESSAGING.md).
 
 ## 10. Login and errors
 

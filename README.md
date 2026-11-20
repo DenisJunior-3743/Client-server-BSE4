@@ -57,6 +57,7 @@ For Android, run inside `mobile/`:
 ## Learning and deployment
 
 - [Spring Boot beginner guide](docs/SPRING-BOOT-GUIDE.md)
+- [Stored procedures, triggers and RabbitMQ setup](backend/DATABASE-MESSAGING.md)
 - [Android guide](mobile/README.md)
 - [Coursework implementation map](docs/TASKS-COVERAGE.md)
 - [Local setup and deployment](DEPLOYMENT.md)

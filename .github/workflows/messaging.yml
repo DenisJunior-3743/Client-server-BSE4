@@ -1,0 +1,59 @@
+name: Verify database and RabbitMQ
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/messaging.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/messaging.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  messaging-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: loans_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d loans_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      rabbitmq:
+        image: rabbitmq:4-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: loan_test
+          RABBITMQ_DEFAULT_PASS: loan_test
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Verify real migrations, triggers, procedures and RabbitMQ
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/loans_test
+          TEST_DATABASE_USER: postgres
+          TEST_DATABASE_PASSWORD: postgres
+          TEST_RABBITMQ_ADDRESS: amqp://loan_test:loan_test@localhost:5672/
+        run: chmod +x mvnw && ./mvnw -B -Dtest=LoanMessagingIntegrationTest test
+      - name: Upload integration reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: messaging-integration-reports
+          path: backend/target/surefire-reports/

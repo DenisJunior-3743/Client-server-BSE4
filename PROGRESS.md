@@ -125,3 +125,24 @@ Confirmed the mobile request is Retrofit multipart with docType and file, and th
 Mobile has an optional collateral photo beside the description and in the document step for replacement after a partial upload. It uses existing COLLATERAL_PROOF, JPEG/PNG, the shared preview and the normal upload/retry path. Required-file counts remain three. The staff web view labels it Collateral evidence photo. Backend validates that new collateral uploads are images. No new schema/host variable is required. Mobile timeouts now cover observed 22–26 second cold starts with 60-second reads/writes and a 90-second total bound.
 
 Validation: 71 backend tests passed with the opt-in Atlas test skipped in the unit run; the real Atlas PNG round-trip test passed separately. Web type checking, lint (existing warnings) and five access tests passed, as did all 14 offline mobile release/encoding checks. No local Android build, device test, or release tag was performed. Hosted customer upload success remains to be confirmed by retrying after deployment; the initial storage failure's exact root cause is not established.
+
+## 21 November 2026 - PostgreSQL procedures, triggers and RabbitMQ
+
+- Added V5 transactional status-history triggers for audit entries and a durable message outbox;
+  V6 pins routine lookup to the migration schema without changing an already-tested migration.
+- Added real PostgreSQL procedures for bounded concurrent message claims and atomic, idempotent
+  notification writes. Status auditing now has one database-owned writer.
+- Added optional RabbitMQ relay/consumer with persistent UUID messages, broker confirms and returns,
+  lease recovery, bounded processing retries, dead-letter routing and admin-only status/publish/retry
+  endpoints documented in Swagger. Broker-free setup mode uses the same notification procedure
+  before the loan transaction commits.
+- Added an isolated Docker learning stack and a GitHub Actions job with real PostgreSQL/RabbitMQ
+  services. The worker is a persistent deployment of the same backend image; Vercel remains the API.
+- Added [architecture and host setup](backend/DATABASE-MESSAGING.md) and updated the beginner guide
+  and coursework mapping. RabbitMQ is not enabled on production by these source changes; provision
+  a broker and worker before setting MESSAGING_ENABLED=true on the API.
+- Verification in progress: unit suite passed before the final integration additions. Isolated Neon
+  migration/procedure tests exposed session-schema reuse in the test harness; migration connections
+  are now separated from its fixture pool and cleanup checks the generated schema explicitly.
+  Local Docker engine is unavailable, so real-broker verification uses the GitHub integration job.
+- No mobile build or release tag was requested or generated for this backend change.
