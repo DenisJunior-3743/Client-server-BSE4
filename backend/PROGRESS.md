@@ -13,3 +13,16 @@ The backend accepts real multipart PDF/JPEG/PNG uploads, stores file bytes in At
 The initial admin defaults to `admin@bank.com` / `Admin123`, stores a BCrypt hash, and is created once without resetting existing passwords. Staff registration remains admin-only. Automatic sample staff seeding is disabled by default. Atlas secrets stay in ignored `atlas-credentials.env` and `backend/.env`. Deployment variables and setup are documented in `backend/GRIDFS-SETUP.md` (or `GRIDFS-SETUP.md` from the backend folder).
 
 Validation: 33 backend unit tests passed; the opt-in Atlas upload/read/delete check passed separately. The packaged API passed health/OpenAPI checks and the full Neon/GridFS workflow smoke test, including admin-created staff, real document uploads/downloads, credit checks, concurrent approvals, disbursement and repayments. The web production build and lint passed. Live smoke-test development records remain in the databases.
+
+## 21 November 2026: procedures, triggers and RabbitMQ
+
+Implemented V5/V6 durable loan status auditing/outbox triggers, real message-claim and
+notification-write stored procedures, and opt-in RabbitMQ notifications with an external
+persistent worker. Broker-free setup mode preserves atomic in-app notifications. Admin-only
+status, manual publication and retry endpoints appear in Swagger. All nine real PostgreSQL/
+RabbitMQ integration tests pass; the Spring/embedded transaction cases also pass against an
+isolated Neon schema. Backend unit checks and Compose configuration validation pass.
+
+Provision a broker and worker before enabling messaging on Vercel. See [DATABASE-MESSAGING.md](DATABASE-MESSAGING.md)
+for architecture, recovery, local Docker services and the three host variables. Production
+messaging flags and broker infrastructure were not changed by this implementation.

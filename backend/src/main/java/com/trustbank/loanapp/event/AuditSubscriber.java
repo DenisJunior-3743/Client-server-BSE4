@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-/** Subscriber 2: the audit trail. Knows nothing about notifications, and the services know nothing about it. */
+/** Non-status audit events. Loan status auditing is owned by the database history trigger (V5). */
 @Component
 public class AuditSubscriber {
 
@@ -28,20 +28,6 @@ public class AuditSubscriber {
     public AuditSubscriber(AuditLogRepository auditLogs, Clock clock) {
         this.auditLogs = auditLogs;
         this.clock = clock;
-    }
-
-    @Async(AsyncConfig.BACKGROUND_EXECUTOR)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void onLoanStatusChanged(LoanStatusChangedEvent event) {
-        Map<String, Object> details = new LinkedHashMap<>();
-        details.put("reference", event.reference());
-        details.put("from", event.from() == null ? null : event.from().name());
-        details.put("to", event.to().name());
-        if (event.note() != null) {
-            details.put("note", event.note());
-        }
-        write("LOAN_APPLICATION", event.applicationId(), "STATUS_" + event.to().name(), event.actorId(), details);
     }
 
     @Async(AsyncConfig.BACKGROUND_EXECUTOR)

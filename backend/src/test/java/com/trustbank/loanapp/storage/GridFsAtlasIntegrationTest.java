@@ -15,8 +15,9 @@ class GridFsAtlasIntegrationTest {
                 System.getenv().getOrDefault("MONGODB_GRIDFS_BUCKET", "loan_documents"));
         String id = null;
         try {
-            byte[] bytes = "%PDF-1.4 TrustBank GridFS connectivity check".getBytes();
-            id = storage.store(new ByteArrayInputStream(bytes), "connectivity-check.pdf", "application/pdf",
+            byte[] bytes = java.util.Base64.getDecoder().decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/yV0AAAAASUVORK5CYII=");
+            id = storage.store(new ByteArrayInputStream(bytes), "connectivity-check.png", "image/png",
                     UUID.randomUUID(), UUID.randomUUID());
             try (var stream = storage.open(id)) { assertArrayEquals(bytes, stream.readAllBytes()); }
         } finally {

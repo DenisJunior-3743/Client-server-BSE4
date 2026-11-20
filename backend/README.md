@@ -6,6 +6,8 @@ account and loan records in PostgreSQL on Neon. Document bytes are stored privat
 
 Progress, the course-concept mapping and next steps are in [PROGRESS.md](PROGRESS.md).
 
+See [stored procedures, triggers and RabbitMQ](DATABASE-MESSAGING.md) for the durable messaging architecture, local stack, worker setup and host variables.
+
 ## Stack
 
 | Layer | Technology |
@@ -16,6 +18,7 @@ Progress, the course-concept mapping and next steps are in [PROGRESS.md](PROGRES
 | Document files | MongoDB Atlas GridFS; accessed through authenticated API endpoints |
 | Auth | JWT (HS256, jjwt), BCrypt password hashes |
 | API description | OpenAPI via springdoc (`/swagger-ui.html`) |
+| Messaging | RabbitMQ with transactional PostgreSQL outbox; embedded setup mode by default |
 | Build | Maven |
 
 ## Folder and branch
@@ -71,7 +74,7 @@ OTP echo) and set `CORS_ALLOWED_ORIGINS` to the dashboard's URL.
 | `POST /applications` | BORROWER | **Idempotency-Key required** |
 | `GET /applications?status=A,B` | any | Borrowers only ever see their own |
 | `GET /applications/{id}`, `GET /applications/{id}/schedule` | owner or staff | |
-| `POST /applications/{id}/documents` | BORROWER | Multipart `docType` + `file`, PDF/JPEG/PNG up to 5 MiB, stored in GridFS |
+| `POST /applications/{id}/documents` | BORROWER | Multipart `docType` + `file`, PDF/JPEG/PNG up to 5 MiB, stored in GridFS; COLLATERAL_PROOF requires JPEG/PNG |
 | `GET /documents/{id}/content` | owner or staff | Authenticated file download; never a public Atlas URL |
 | `POST /applications/{id}/info-response` | BORROWER | |
 | `POST /applications/{id}/offer/accept` | BORROWER | **Idempotency-Key**; 410 after `offerExpiresAt` |
@@ -89,6 +92,9 @@ OTP echo) and set `CORS_ALLOWED_ORIGINS` to the dashboard's URL.
 | `DELETE /staff/{id}` | ADMIN | 204; revoke access and remove from the directory, retain history |
 | `PUT /staff/{id}/credentials` | ADMIN | 204; set/replace only the password, using existing email as username |
 | `GET /audit-logs` | ADMIN | |
+| `GET /admin/messaging` | ADMIN | Durable delivery counts and transport |
+| `POST /admin/messaging/publish` | ADMIN | Manually relay up to ten pending events |
+| `POST /admin/messaging/{eventId}/retry` | ADMIN | Requeue an unconsumed event after fixing delivery |
 
 Staff deletion sets the existing `users.active` flag to false. Loan assignments, decisions and audit
 references remain intact, and the email stays reserved. Deleted accounts cannot sign in or use an

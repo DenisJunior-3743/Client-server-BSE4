@@ -49,6 +49,27 @@ spring:
       - "SET lock_timeout = '10s'; SET statement_timeout = '120s'; SET idle_in_transaction_session_timeout = '120s'"
     locations: classpath:db/migration
 
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:amqp://guest:guest@localhost:5672/%2f}
+    connection-timeout: 5s
+    requested-heartbeat: 30s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        auto-startup: ${MESSAGING_WORKER_ENABLED:false}
+        acknowledge-mode: auto
+        prefetch: 10
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          max-interval: 5s
+          multiplier: 2
+
   jackson:
     default-property-inclusion: non_null
     deserialization:
@@ -84,6 +105,10 @@ server:
     max-http-form-post-size: 6MB
 
 management:
+  health:
+    rabbit:
+      # API health is independent of the broker; inspect backlog via the admin messaging endpoint.
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -99,6 +124,9 @@ springdoc:
     path: /swagger-ui.html
 
 app:
+  messaging:
+    enabled: ${MESSAGING_ENABLED:false}
+    worker-enabled: ${MESSAGING_WORKER_ENABLED:false}
   documents:
     mongodb-uri: ${MONGODB_URI:}
     database: ${MONGODB_DATABASE:trustbank_documents}
