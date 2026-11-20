@@ -1,4 +1,35 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "container"
+  "framework": "container",
+  "daemons": {
+    "loan-notifications": {
+      "root": ".",
+      "entrypoint": "Dockerfile",
+      "instances": { "iad1": 1 },
+      "resources": { "requests": { "memory": "1Gi" } },
+      "command": [
+        "java",
+        "-XX:MaxRAMPercentage=60",
+        "-jar",
+        "/app/app.jar",
+        "--app.messaging.enabled=true",
+        "--app.messaging.worker-enabled=true",
+        "--app.bootstrap-admin.enabled=false",
+        "--app.seed-demo-data=false",
+        "--app.documents.mongodb-uri=",
+        "--app.maintenance.enabled=false",
+        "--spring.datasource.hikari.minimum-idle=0",
+        "--spring.datasource.hikari.maximum-pool-size=4",
+        "--server.port=8080",
+        "--management.endpoint.health.probes.enabled=true"
+      ],
+      "livenessProbe": {
+        "httpGet": { "port": 8080, "path": "/actuator/health/liveness" },
+        "initialDelaySeconds": 60,
+        "periodSeconds": 30,
+        "timeoutSeconds": 3
+      },
+      "terminationGracePeriodSeconds": 50
+    }
+  }
 }
