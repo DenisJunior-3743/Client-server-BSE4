@@ -73,6 +73,10 @@ creating a notification. This is not a claim of exactly-once network delivery.
 | `MESSAGING_WORKER_ENABLED` | `false` | `false` | `true` |
 | `RABBITMQ_ADDRESSES` | local guest URL | Private broker AMQPS URL | Same private broker AMQPS URL |
 
+The Vercel deployment defines one `loan-notifications` daemon in `iad1` with 1 GiB of
+memory. It reuses the backend Dockerfile and project secrets. Its startup command enables
+the relay and consumer even when the API's worker flag is false.
+
 With messaging disabled, a synchronous **before-commit** listener flushes the history rows,
 uses the same notification procedure and marks the events delivered within the loan's own
 transaction. Notifications continue during setup without a broker. This embedded mode is
@@ -117,21 +121,26 @@ on the local API. Demo passwords in this compose file are for local use only.
    The default `/` vhost is encoded as `/%2f` at the end of a URI, for example
    `amqps://<user>:<password>@<broker-host>:5671/%2f`; a trailing `/` selects an empty vhost.
    Never expose the management interface without authentication.
-3. Run the backend Docker image on a persistent container/worker host. Use the same database
-   and JWT settings, `MESSAGING_ENABLED=true`, `MESSAGING_WORKER_ENABLED=true`,
-   `RABBITMQ_ADDRESSES=<broker AMQPS URL>`, and `BOOTSTRAP_ADMIN_ENABLED=false`.
-   Its start command is the existing Docker entrypoint (`java ... -jar app.jar`). The worker
-   declares the queues/exchanges, polls the outbox every five seconds, and consumes notifications.
-4. Add the three messaging variables to the Vercel backend project, with worker enabled **false**,
-   then redeploy. Keep the React and Kotlin deployments unchanged.
+3. Store the broker's AMQPS URL as the `RABBITMQ_ADDRESSES` Production secret and deploy to
+   Production. The daemon in `backend/vercel.json` declares the queues and exchanges, polls
+   the outbox every five seconds, and consumes notifications. Confirm that its instance is
+   ready and that the notification queue has a consumer in CloudAMQP.
+4. Set `MESSAGING_ENABLED=true` and `MESSAGING_WORKER_ENABLED=false` on the backend's
+   Production environment, then redeploy. The daemon's startup command overrides these
+   flags for its own process.
 5. Sign in as admin in Swagger and inspect `GET /api/v1/admin/messaging`. Submit a test loan as
    a borrower, then inspect RabbitMQ and the borrower's notifications. The pending backlog should
    drain; an isolated test event should end with both publication and consumption timestamps.
 
-Vercel runs the request-serving API. Durable delivery must not depend on its in-process scheduler
-remaining alive after a request: the separately hosted persistent worker performs relay and
-consumption. It is intentionally absent from the mobile release workflow. Enabling variables
-alone does not provision a broker or worker; those host resources still need to be created.
+The API runs on Vercel Functions and the worker runs on Vercel Daemons. Both deploy from
+the same Git revision. The daemon skips account setup, GridFS, and scheduled loan maintenance,
+and checks process liveness on an internal port. You can also use a persistent Docker host
+with the worker variables from the table above.
+
+Vercel Hobby's daemon quota is 420 GB-hours of provisioned memory and 5 active CPU hours per
+team per month. One continuously running 1 GiB instance can use the memory quota in about
+17 days. Vercel pauses the daemon if the team reaches either quota. PostgreSQL holds pending
+outbox events until the worker resumes. See [Vercel Daemons limits](https://vercel.com/docs/daemons/limits).
 
 ## Swagger and recovery
 
