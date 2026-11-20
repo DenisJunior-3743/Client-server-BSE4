@@ -114,6 +114,8 @@ on the local API. Demo passwords in this compose file are for local use only.
    broker-free notifications continue to work.
 2. Provision RabbitMQ with durable storage and a private credentialed vhost. Use an `amqps://`
    connection URL for a hosted broker; URL-encode username, password and vhost when necessary.
+   The default `/` vhost is encoded as `/%2f` at the end of a URI, for example
+   `amqps://<user>:<password>@<broker-host>:5671/%2f`; a trailing `/` selects an empty vhost.
    Never expose the management interface without authentication.
 3. Run the backend Docker image on a persistent container/worker host. Use the same database
    and JWT settings, `MESSAGING_ENABLED=true`, `MESSAGING_WORKER_ENABLED=true`,

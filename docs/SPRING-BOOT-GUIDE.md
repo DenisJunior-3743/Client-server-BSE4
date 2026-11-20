@@ -30,7 +30,7 @@ public class LoanBackendApplication {
 
 ## 2. Where the backend fits
 
-The Android app and React dashboard are clients. They send HTTP requests to one backend, which applies business rules and reads or writes PostgreSQL. Neon is the hosted PostgreSQL service planned for this project.
+The Android app and React dashboard are clients. They send HTTP requests to one backend, which applies business rules and reads or writes PostgreSQL. Neon is the hosted PostgreSQL service used by this project.
 
 ```mermaid
 flowchart TD

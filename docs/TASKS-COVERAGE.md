@@ -9,10 +9,14 @@ flowchart LR
   Android[Kotlin Android borrower app] -->|REST / JSON + JWT| API[Spring Boot API]
   Staff[React staff dashboard] -->|REST / JSON + JWT| API
   API -->|HikariCP / JDBC / TLS to Neon| DB[(PostgreSQL)]
-  API -->|After-commit status events| Workers[Background workers]
-  Workers --> Audit[Audit subscriber]
-  Workers --> Notice[Notification subscriber]
-  Workers --> Credit[Credit bureau stub]
+  DB --> History[Status history triggers]
+  History --> Audit[Transactional audit]
+  History --> Outbox[Durable outbox]
+  Outbox --> Relay[Persistent relay worker]
+  Relay -->|When enabled| Rabbit[RabbitMQ]
+  Rabbit --> Notice[Notification consumer]
+  Notice --> DB
+  API -->|After-commit event| Credit[Credit bureau stub]
 ```
 
 Presentation and light validation run in the clients. Loan eligibility, interest, transitions and authorization run on the server. PostgreSQL owns durable records and concurrency constraints.

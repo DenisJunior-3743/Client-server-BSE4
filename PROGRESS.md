@@ -141,8 +141,11 @@ Validation: 71 backend tests passed with the opt-in Atlas test skipped in the un
 - Added [architecture and host setup](backend/DATABASE-MESSAGING.md) and updated the beginner guide
   and coursework mapping. RabbitMQ is not enabled on production by these source changes; provision
   a broker and worker before setting MESSAGING_ENABLED=true on the API.
-- Verification in progress: unit suite passed before the final integration additions. Isolated Neon
-  migration/procedure tests exposed session-schema reuse in the test harness; migration connections
-  are now separated from its fixture pool and cleanup checks the generated schema explicitly.
-  Local Docker engine is unavailable, so real-broker verification uses the GitHub integration job.
-- No mobile build or release tag was requested or generated for this backend change.
+- Verification: GitHub backend unit checks and web checks passed at e9ddc86; all nine real
+  PostgreSQL/RabbitMQ integration tests passed in run 44822600164, including broker delivery,
+  deduplication, dead-letter/unroutable handling, rollback, lease recovery and Spring/JPA commit.
+  The corrected Spring/embedded cases also passed against Neon in a temporary schema (two tests);
+  the schema was removed. Docker Compose configuration validates locally. Tests use dedicated
+  migration connections and explicit schema guards; production data was not used as test fixtures.
+- No local mobile build or release tag was generated for this backend change. The existing project
+  verification workflow still runs its normal Android checks on pushes.
