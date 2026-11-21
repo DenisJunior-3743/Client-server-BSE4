@@ -74,6 +74,7 @@ OTP echo) and set `CORS_ALLOWED_ORIGINS` to the dashboard's URL.
 | `POST /applications` | BORROWER | **Idempotency-Key required** |
 | `GET /applications?status=A,B` | any | Borrowers only ever see their own |
 | `GET /applications/{id}`, `GET /applications/{id}/schedule` | owner or staff | |
+| `POST /rpc` | owner or staff | JSON-RPC 2.0. Call `loan.getApplication` or `loan.getRepaymentSchedule` with an `applicationId`. |
 | `POST /applications/{id}/documents` | BORROWER | Multipart `docType` + `file`, PDF/JPEG/PNG up to 5 MiB, stored in GridFS; COLLATERAL_PROOF requires JPEG/PNG |
 | `GET /documents/{id}/content` | owner or staff | Authenticated file download; never a public Atlas URL |
 | `POST /applications/{id}/info-response` | BORROWER | |

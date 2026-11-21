@@ -1,5 +1,6 @@
 import type { ApplicationDetail, Disbursement, LoanApplication, LoanDocument, LoanStatus } from '@/types'
 import { request } from '../client'
+import { readLoanRpc } from './loanRpc'
 
 export interface ApplicationFilter {
   statuses?: LoanStatus[]
@@ -11,7 +12,9 @@ export function listApplications(filter?: ApplicationFilter): Promise<LoanApplic
 }
 
 export function getApplicationDetail(id: string): Promise<ApplicationDetail> {
-  return request<ApplicationDetail>(`/api/v1/applications/${id}`)
+  return readLoanRpc('loan.getApplication', id, () =>
+    request<ApplicationDetail>(`/api/v1/applications/${encodeURIComponent(id)}`),
+  )
 }
 
 // Every command below sends the `version` this screen loaded. If another officer changed the

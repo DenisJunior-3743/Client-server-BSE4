@@ -56,6 +56,8 @@ interface RequestOptions {
   body?: unknown
   /** Makes a POST safe to retransmit: the server runs it at most once and replays the first reply. */
   idempotencyKey?: string
+  /** Use for read-only procedures that use HTTP POST. */
+  readOnly?: true
   /** false for the public /auth endpoints */
   auth?: boolean
 }
@@ -71,7 +73,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (auth && token) headers.Authorization = `Bearer ${token}`
 
   // Only retransmit what is safe to repeat: reads, and writes that carry an Idempotency-Key.
-  const retryable = method === 'GET' || options.idempotencyKey !== undefined
+  const retryable = method === 'GET' || options.readOnly === true || options.idempotencyKey !== undefined
   const maxAttempts = retryable ? 3 : 1
 
   let lastError: ApiError = new ApiError(0, 'NETWORK', 'Cannot reach the server. Check your connection.')
