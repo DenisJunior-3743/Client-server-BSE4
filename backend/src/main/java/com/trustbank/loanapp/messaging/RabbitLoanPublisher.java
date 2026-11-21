@@ -19,13 +19,14 @@ public class RabbitLoanPublisher {
 
     public RabbitLoanPublisher(RabbitTemplate rabbit) { this.rabbit = rabbit; }
 
-    public void publish(UUID id) throws Exception {
+    public void publish(LoanMessageStore.ClaimedMessage message) throws Exception {
+        UUID id = message.id();
         var properties = new MessageProperties();
         properties.setMessageId(id.toString());
         properties.setContentType(MessageProperties.CONTENT_TYPE_TEXT_PLAIN);
         properties.setDeliveryMode(MessageDeliveryMode.PERSISTENT);
         var correlation = new CorrelationData(id.toString());
-        rabbit.send(RabbitMessagingConfig.EXCHANGE, RabbitMessagingConfig.KEY,
+        rabbit.send(RabbitMessagingConfig.EXCHANGE, message.type().routingKey,
                 new Message(id.toString().getBytes(StandardCharsets.UTF_8), properties), correlation);
         var confirm = correlation.getFuture().get(5, TimeUnit.SECONDS);
         if (!confirm.isAck() || correlation.getReturned() != null) {

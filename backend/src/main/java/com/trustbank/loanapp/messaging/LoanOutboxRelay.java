@@ -30,11 +30,12 @@ public class LoanOutboxRelay {
 
     public int publishBatch() {
         UUID token = UUID.randomUUID();
-        var ids = store.claim(token); // transaction finishes before network I/O
+        var messages = store.claim(token); // transaction finishes before network I/O
         int sent = 0;
-        for (UUID id : ids) {
+        for (var message : messages) {
+            UUID id = message.id();
             try {
-                publisher.publish(id);
+                publisher.publish(message);
                 store.complete(id, token); // only after publisher confirm AND successful routing
                 sent++;
             } catch (InterruptedException ex) {

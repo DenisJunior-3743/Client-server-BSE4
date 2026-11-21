@@ -19,6 +19,9 @@ public class RabbitMessagingConfig {
     public static final String QUEUE = "trustbank.loan.notifications.v1";
     public static final String DEAD_EXCHANGE = "trustbank.loan.dead.v1";
     public static final String DEAD_QUEUE = "trustbank.loan.notifications.dead.v1";
+    public static final String REPEAT_DELINQUENCY_KEY = "loan.delinquency.repeated";
+    public static final String STAFF_ALERT_QUEUE = "trustbank.loan.staff-alerts.v1";
+    public static final String STAFF_ALERT_DEAD_QUEUE = "trustbank.loan.staff-alerts.dead.v1";
 
     @Bean public DirectExchange loanExchange() { return new DirectExchange(EXCHANGE, true, false); }
     @Bean public DirectExchange loanDeadExchange() { return new DirectExchange(DEAD_EXCHANGE, true, false); }
@@ -31,5 +34,16 @@ public class RabbitMessagingConfig {
     }
     @Bean public Binding loanDeadBinding() {
         return BindingBuilder.bind(loanDeadQueue()).to(loanDeadExchange()).with(KEY);
+    }
+    @Bean public Queue staffAlertQueue() {
+        return QueueBuilder.durable(STAFF_ALERT_QUEUE).deadLetterExchange(DEAD_EXCHANGE)
+                .deadLetterRoutingKey(REPEAT_DELINQUENCY_KEY).build();
+    }
+    @Bean public Queue staffAlertDeadQueue() { return QueueBuilder.durable(STAFF_ALERT_DEAD_QUEUE).build(); }
+    @Bean public Binding staffAlertBinding() {
+        return BindingBuilder.bind(staffAlertQueue()).to(loanExchange()).with(REPEAT_DELINQUENCY_KEY);
+    }
+    @Bean public Binding staffAlertDeadBinding() {
+        return BindingBuilder.bind(staffAlertDeadQueue()).to(loanDeadExchange()).with(REPEAT_DELINQUENCY_KEY);
     }
 }

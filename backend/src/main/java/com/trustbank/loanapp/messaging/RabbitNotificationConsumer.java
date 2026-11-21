@@ -17,8 +17,17 @@ public class RabbitNotificationConsumer {
     @RabbitListener(queues = RabbitMessagingConfig.QUEUE,
             autoStartup = "${app.messaging.worker-enabled:false}")
     public void consume(Message message) {
+        processor.consumeStatusFromBroker(eventId(message));
+    }
+
+    @RabbitListener(queues = RabbitMessagingConfig.STAFF_ALERT_QUEUE,
+            autoStartup = "${app.messaging.worker-enabled:false}")
+    public void consumeStaffAlert(Message message) {
+        processor.consumeRepeatDelinquency(eventId(message));
+    }
+
+    private UUID eventId(Message message) {
         if (message.getBody().length != 36) throw new IllegalArgumentException("Expected a UUID loan message");
-        UUID id = UUID.fromString(new String(message.getBody(), StandardCharsets.UTF_8));
-        processor.consume(id); // separate transactional bean commits before this listener returns/ACKs
+        return UUID.fromString(new String(message.getBody(), StandardCharsets.UTF_8));
     }
 }

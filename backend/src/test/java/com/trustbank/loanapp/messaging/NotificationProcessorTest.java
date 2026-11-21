@@ -27,6 +27,20 @@ class NotificationProcessorTest {
         verify(store, never()).recordNotification(any(), any());
     }
 
+    @Test void brokerDelinquencyRunsTheDetectorAlongsideTheBorrowerNotification() {
+        var store = mock(LoanMessageStore.class);
+        UUID id = UUID.randomUUID();
+        when(store.load(id)).thenReturn(new LoanStatusChangedEvent(UUID.randomUUID(), "LN-2026-1000",
+                UUID.randomUUID(), LoanStatus.ACTIVE, LoanStatus.DELINQUENT, null, null, Instant.now()));
+        var processor = new NotificationProcessor(store);
+        processor.consume(id);
+        verify(store, never()).detectRepeatDelinquency(id);
+
+        processor.consumeStatusFromBroker(id);
+        verify(store).detectRepeatDelinquency(id);
+        verify(store, times(2)).recordNotification(eq(id), anyString());
+    }
+
     @Test void malformedBrokerMessageNeverTouchesDatabase() {
         var processor = mock(NotificationProcessor.class);
         var consumer = new RabbitNotificationConsumer(processor);

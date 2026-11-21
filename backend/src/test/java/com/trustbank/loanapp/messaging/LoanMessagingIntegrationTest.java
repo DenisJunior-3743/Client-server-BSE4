@@ -2,6 +2,7 @@ package com.trustbank.loanapp.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Connection;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
@@ -40,8 +41,12 @@ class LoanMessagingIntegrationTest {
                 System.getenv("TEST_DATABASE_URL"),
                 System.getenv().getOrDefault("TEST_DATABASE_USER", "postgres"),
                 System.getenv().getOrDefault("TEST_DATABASE_PASSWORD", "postgres"));
-        Flyway.configure().dataSource(migrationSource).schemas(schema).defaultSchema(schema).load().migrate();
+        Flyway.configure().dataSource(migrationSource).schemas(schema).defaultSchema(schema).target("6").load().migrate();
         jdbc = new JdbcTemplate(dataSource);
+        UUID existingEvent = history(loan());
+        Flyway.configure().dataSource(migrationSource).schemas(schema).defaultSchema(schema).load().migrate();
+        assertEquals(existingEvent, jdbc.queryForObject("SELECT source_history_id FROM loan_message_outbox WHERE id = ?",
+                UUID.class, existingEvent));
         store = new LoanMessageStore(jdbc, new ObjectMapper().findAndRegisterModules());
         processor = new NotificationProcessor(store);
     }
@@ -79,6 +84,86 @@ class LoanMessagingIntegrationTest {
     }
 
     private long count(String table) { return jdbc.queryForObject("SELECT count(*) FROM " + table, Long.class); }
+
+    private LoanMessageStore.ClaimedMessage statusMessage(UUID id) {
+        return new LoanMessageStore.ClaimedMessage(id, LoanMessageType.LOAN_STATUS_CHANGED);
+    }
+
+    private UUID delinquency(UUID loan, OffsetDateTime occurredAt) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO loan_status_history (id, loan_application_id, from_status, to_status, changed_at) "
+                + "VALUES (?, ?, 'ACTIVE', 'DELINQUENT', ?)", id, loan, occurredAt);
+        return id;
+    }
+
+    private UUID staff(String role) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO users(id,email,password_hash,role,full_name,phone) "
+                + "VALUES (?,?,'test-hash',?,'Test staff','0700000000')", id, id + "@example.test", role);
+        return id;
+    }
+
+    @Test void repeatDelinquencyUsesEventTimeAndCreatesOneAssignedStaffAlert() {
+        UUID loan = loan(), officer = staff("LOAN_OFFICER");
+        staff("ADMIN");
+        jdbc.update("UPDATE loan_applications SET assigned_officer_id = ? WHERE id = ?", officer, loan);
+        var now = OffsetDateTime.parse("2026-11-21T12:00:00Z");
+        UUID first = delinquency(loan, now.minusDays(30));
+        UUID second = delinquency(loan, now);
+
+        // The later message can arrive before the earlier message. Both history rows are committed.
+        processor.consumeStatusFromBroker(second);
+        processor.consumeStatusFromBroker(first);
+        processor.consumeStatusFromBroker(second);
+        assertEquals(first, jdbc.queryForObject("SELECT (payload->>'previousEventId')::uuid "
+                + "FROM loan_message_outbox WHERE event_type = 'REPEAT_DELINQUENCY'", UUID.class));
+        assertEquals(2, count("notifications")); // only the usual borrower alerts before derived delivery
+
+        var oldToken = UUID.randomUUID();
+        jdbc.update("CALL claim_loan_messages(?, ?)", 10, oldToken);
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM loan_message_outbox WHERE lease_token = ?",
+                Long.class, oldToken));
+        var claimed = store.claim(UUID.randomUUID());
+        assertEquals(1, claimed.size());
+        var composite = claimed.getFirst();
+        assertEquals(LoanMessageType.REPEAT_DELINQUENCY, composite.type());
+        processor.consumeRepeatDelinquency(composite.id());
+        processor.consumeRepeatDelinquency(composite.id());
+
+        assertEquals(3, count("notifications"));
+        assertEquals(officer, jdbc.queryForObject("SELECT user_id FROM notifications WHERE source_event_id = ?",
+                UUID.class, composite.id()));
+        assertFalse(store.requestRetry(composite.id()));
+    }
+
+    @Test void previousDelinquencyMustBeOnTheSameLoanAndInsideTheWindow() {
+        UUID loan = loan(), otherLoan = loan();
+        var now = OffsetDateTime.parse("2026-11-21T12:00:00Z");
+        delinquency(loan, now.minusDays(30).minusSeconds(1));
+        delinquency(otherLoan, now.minusDays(1));
+        processor.consumeStatusFromBroker(delinquency(loan, now));
+        assertEquals(3, count("loan_message_outbox"));
+        assertEquals(1, count("notifications"));
+    }
+
+    @Test void staffAlertCanBeRetriedAfterAnEligibleRecipientIsAdded() {
+        UUID loan = loan(), disabledOfficer = staff("LOAN_OFFICER");
+        jdbc.update("UPDATE users SET active = false WHERE id = ?", disabledOfficer);
+        jdbc.update("UPDATE loan_applications SET assigned_officer_id = ? WHERE id = ?", disabledOfficer, loan);
+        var now = OffsetDateTime.parse("2026-11-21T12:00:00Z");
+        delinquency(loan, now.minusDays(5));
+        processor.consumeStatusFromBroker(delinquency(loan, now));
+        UUID event = jdbc.queryForObject("SELECT id FROM loan_message_outbox "
+                + "WHERE event_type = 'REPEAT_DELINQUENCY'", UUID.class);
+
+        assertThrows(org.springframework.dao.DataAccessException.class,
+                () -> processor.consumeRepeatDelinquency(event));
+        assertTrue(store.requestRetry(event));
+        UUID admin = staff("ADMIN");
+        processor.consumeRepeatDelinquency(event);
+        assertEquals(admin, jdbc.queryForObject("SELECT user_id FROM notifications WHERE source_event_id = ?",
+                UUID.class, event));
+    }
 
     @Test void triggersProduceOneAuditAndDurableEvent() {
         UUID loan = loan(), event = history(loan);
@@ -130,14 +215,14 @@ class LoanMessagingIntegrationTest {
                 statement.setObject(1, locked);
                 statement.executeQuery().close();
             }
-            assertEquals(java.util.List.of(free), store.claim(first));
+            assertEquals(java.util.List.of(statusMessage(free)), store.claim(first));
             connection.rollback();
         }
-        assertEquals(java.util.List.of(locked), store.claim(second));
+        assertEquals(java.util.List.of(statusMessage(locked)), store.claim(second));
         assertTrue(store.claim(UUID.randomUUID()).isEmpty());
         jdbc.update("UPDATE loan_message_outbox SET lease_until = now() - interval '1 second' WHERE id = ?", free);
         UUID replacement = UUID.randomUUID();
-        assertEquals(java.util.List.of(free), store.claim(replacement));
+        assertEquals(java.util.List.of(statusMessage(free)), store.claim(replacement));
         store.complete(free, first); // expired claim cannot acknowledge another worker's lease
         assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM loan_message_outbox WHERE published_at IS NOT NULL", Long.class));
         store.complete(free, replacement);
@@ -148,7 +233,7 @@ class LoanMessagingIntegrationTest {
         UUID event = history(loan()), token = UUID.randomUUID();
         store.claim(token); store.complete(event, token);
         assertTrue(store.requestRetry(event));
-        assertEquals(java.util.List.of(event), store.claim(UUID.randomUUID()));
+        assertEquals(java.util.List.of(statusMessage(event)), store.claim(UUID.randomUUID()));
         processor.consume(event);
         assertFalse(store.requestRetry(event));
         assertFalse(store.requestRetry(UUID.randomUUID()));
@@ -222,14 +307,33 @@ class LoanMessagingIntegrationTest {
             admin.declareExchange(config.loanExchange()); admin.declareExchange(config.loanDeadExchange());
             admin.declareQueue(config.loanQueue()); admin.declareQueue(config.loanDeadQueue());
             admin.declareBinding(config.loanBinding()); admin.declareBinding(config.loanDeadBinding());
+            admin.declareQueue(config.staffAlertQueue()); admin.declareQueue(config.staffAlertDeadQueue());
+            admin.declareBinding(config.staffAlertBinding()); admin.declareBinding(config.staffAlertDeadBinding());
             UUID event = history(loan());
             var publisher = new RabbitLoanPublisher(rabbit);
-            publisher.publish(event);
+            publisher.publish(statusMessage(event));
             var message = rabbit.receive(RabbitMessagingConfig.QUEUE, 5000);
             assertNotNull(message);
             var consumer = new RabbitNotificationConsumer(processor);
             consumer.consume(message); consumer.consume(message);
             assertEquals(1, count("notifications"));
+
+            UUID adminId = staff("ADMIN"), delinquentLoan = loan();
+            var now = OffsetDateTime.parse("2026-11-21T12:00:00Z");
+            delinquency(delinquentLoan, now.minusDays(1));
+            publisher.publish(statusMessage(delinquency(delinquentLoan, now)));
+            Message status = rabbit.receive(RabbitMessagingConfig.QUEUE, 5000);
+            assertNotNull(status);
+            consumer.consume(status);
+            UUID compositeId = jdbc.queryForObject("SELECT id FROM loan_message_outbox "
+                    + "WHERE event_type = 'REPEAT_DELINQUENCY'", UUID.class);
+            publisher.publish(new LoanMessageStore.ClaimedMessage(compositeId, LoanMessageType.REPEAT_DELINQUENCY));
+            Message alert = rabbit.receive(RabbitMessagingConfig.STAFF_ALERT_QUEUE, 5000);
+            assertNotNull(alert);
+            consumer.consumeStaffAlert(alert);
+            consumer.consumeStaffAlert(alert);
+            assertEquals(adminId, jdbc.queryForObject("SELECT user_id FROM notifications WHERE source_event_id = ?",
+                    UUID.class, compositeId));
             rabbit.send(RabbitMessagingConfig.EXCHANGE, RabbitMessagingConfig.KEY,
                     new Message("invalid".getBytes(java.nio.charset.StandardCharsets.UTF_8), new MessageProperties()));
             var listener = new org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer(factory);
@@ -241,8 +345,10 @@ class LoanMessagingIntegrationTest {
                 assertNotNull(rabbit.receive(RabbitMessagingConfig.DEAD_QUEUE, 10000));
             } finally { listener.stop(); }
             admin.removeBinding(config.loanBinding());
-            assertThrows(IllegalStateException.class, () -> publisher.publish(event));
+            assertThrows(IllegalStateException.class, () -> publisher.publish(statusMessage(event)));
         } finally {
+            admin.deleteQueue(RabbitMessagingConfig.STAFF_ALERT_QUEUE);
+            admin.deleteQueue(RabbitMessagingConfig.STAFF_ALERT_DEAD_QUEUE);
             admin.deleteQueue(RabbitMessagingConfig.QUEUE); admin.deleteQueue(RabbitMessagingConfig.DEAD_QUEUE);
             admin.deleteExchange(RabbitMessagingConfig.EXCHANGE); admin.deleteExchange(RabbitMessagingConfig.DEAD_EXCHANGE);
             factory.destroy();

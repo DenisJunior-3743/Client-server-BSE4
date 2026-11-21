@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class RabbitLoanPublisherTest {
-    @Test void publishesPersistentIdAndWaitsForConfirmation() throws Exception {
+    @Test void routesPersistentCompositeEventAndWaitsForConfirmation() throws Exception {
         var rabbit = mock(RabbitTemplate.class);
         UUID id = UUID.randomUUID();
         doAnswer(inv -> {
@@ -21,9 +21,10 @@ class RabbitLoanPublisherTest {
             CorrelationData data = inv.getArgument(3);
             data.getFuture().complete(new CorrelationData.Confirm(true, null));
             return null;
-        }).when(rabbit).send(eq(RabbitMessagingConfig.EXCHANGE), eq(RabbitMessagingConfig.KEY),
+        }).when(rabbit).send(eq(RabbitMessagingConfig.EXCHANGE), eq(RabbitMessagingConfig.REPEAT_DELINQUENCY_KEY),
                 any(Message.class), any(CorrelationData.class));
-        assertDoesNotThrow(() -> new RabbitLoanPublisher(rabbit).publish(id));
+        assertDoesNotThrow(() -> new RabbitLoanPublisher(rabbit).publish(
+                new LoanMessageStore.ClaimedMessage(id, LoanMessageType.REPEAT_DELINQUENCY)));
     }
 
     @Test void acknowledgedButUnroutableMessageMustNotBeMarkedPublished() {
@@ -34,7 +35,8 @@ class RabbitLoanPublisherTest {
             data.getFuture().complete(new CorrelationData.Confirm(true, null));
             return null;
         }).when(rabbit).send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
-        assertThrows(IllegalStateException.class, () -> new RabbitLoanPublisher(rabbit).publish(UUID.randomUUID()));
+        var event = new LoanMessageStore.ClaimedMessage(UUID.randomUUID(), LoanMessageType.LOAN_STATUS_CHANGED);
+        assertThrows(IllegalStateException.class, () -> new RabbitLoanPublisher(rabbit).publish(event));
     }
 
     @Test void negativeBrokerConfirmationFailsPublication() {
@@ -44,6 +46,7 @@ class RabbitLoanPublisherTest {
             data.getFuture().complete(new CorrelationData.Confirm(false, "rejected"));
             return null;
         }).when(rabbit).send(anyString(), anyString(), any(Message.class), any(CorrelationData.class));
-        assertThrows(IllegalStateException.class, () -> new RabbitLoanPublisher(rabbit).publish(UUID.randomUUID()));
+        var event = new LoanMessageStore.ClaimedMessage(UUID.randomUUID(), LoanMessageType.LOAN_STATUS_CHANGED);
+        assertThrows(IllegalStateException.class, () -> new RabbitLoanPublisher(rabbit).publish(event));
     }
 }

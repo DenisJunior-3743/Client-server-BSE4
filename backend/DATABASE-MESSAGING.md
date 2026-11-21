@@ -43,6 +43,12 @@ Keep applied migration files unchanged. V5 adds:
 | `record_loan_notification(event_id, message)` | Stored procedure atomically marking an event consumed and inserting its notification |
 | `notifications.source_event_id` | Unique non-null event identity preventing duplicate notifications |
 
+V7 adds the [repeat-delinquency composite event](../docs/presentation/08-COMPOSITE-EVENT-DETECTION.md).
+Current workers call `claim_loan_events(limit, token, event_type)` with a null filter to claim
+both message types. The older `claim_loan_messages(limit, token)` procedure still claims status
+events during rollout. The worker declares the staff-alert and dead-letter queues using the
+existing broker connection.
+
 PostgreSQL trigger bodies are **functions returning trigger**. The two procedures are actual
 `CREATE PROCEDURE` objects invoked by Java using `CALL`, rather than functions renamed as
 procedures. Neither procedure commits independently: the caller controls the transaction.

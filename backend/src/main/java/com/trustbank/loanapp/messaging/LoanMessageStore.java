@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class LoanMessageStore {
+    record ClaimedMessage(UUID id, LoanMessageType type) {}
+
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
 
@@ -20,20 +22,23 @@ public class LoanMessageStore {
     }
 
     @Transactional
-    public List<UUID> claim(UUID token) {
-        jdbc.update("CALL claim_loan_messages(?, ?)", 10, token);
-        return jdbc.query("SELECT id FROM loan_message_outbox WHERE lease_token = ? AND published_at IS NULL "
-                + "ORDER BY created_at, id", (rs, row) -> rs.getObject(1, UUID.class), token);
+    public List<ClaimedMessage> claim(UUID token) {
+        jdbc.update("CALL claim_loan_events(?, ?, NULL)", 10, token);
+        return jdbc.query("SELECT id, event_type FROM loan_message_outbox "
+                + "WHERE lease_token = ? AND published_at IS NULL ORDER BY created_at, id",
+                (rs, row) -> new ClaimedMessage(rs.getObject("id", UUID.class),
+                        LoanMessageType.valueOf(rs.getString("event_type"))), token);
     }
 
     public List<UUID> pendingForApplication(UUID applicationId) {
         return jdbc.query("SELECT id FROM loan_message_outbox WHERE loan_application_id = ? "
-                + "AND published_at IS NULL AND lease_token IS NULL ORDER BY created_at, id",
-                (rs, row) -> rs.getObject(1, UUID.class), applicationId);
+                + "AND event_type = 'LOAN_STATUS_CHANGED' AND published_at IS NULL AND lease_token IS NULL "
+                + "ORDER BY created_at, id", (rs, row) -> rs.getObject(1, UUID.class), applicationId);
     }
 
     public LoanStatusChangedEvent load(UUID id) {
-        var rows = jdbc.query("SELECT payload::text FROM loan_message_outbox WHERE id = ?",
+        var rows = jdbc.query("SELECT payload::text FROM loan_message_outbox "
+                        + "WHERE id = ? AND event_type = 'LOAN_STATUS_CHANGED'",
                 (rs, row) -> rs.getString(1), id);
         if (rows.isEmpty()) return null; // loan deleted after publication
         try {
@@ -45,6 +50,14 @@ public class LoanMessageStore {
 
     public void recordNotification(UUID id, String message) {
         jdbc.update("CALL record_loan_notification(?, ?)", id, message);
+    }
+
+    public void detectRepeatDelinquency(UUID id) {
+        jdbc.update("CALL detect_repeat_delinquency(?)", id);
+    }
+
+    public void recordRepeatDelinquencyAlert(UUID id) {
+        jdbc.update("CALL record_repeat_delinquency_alert(?)", id);
     }
 
     public void complete(UUID id, UUID token) {

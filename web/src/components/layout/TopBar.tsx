@@ -1,6 +1,7 @@
 import { useAuth } from '@/state/AuthContext'
 import { STAFF_ROLE_META } from '@/lib/status'
 import { Avatar } from '@/components/ui/Avatar'
+import { StaffNotifications } from './StaffNotifications'
 
 export function TopBar() {
   const { user } = useAuth()
@@ -10,6 +11,7 @@ export function TopBar() {
     <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-neutral-200 bg-white/85 px-6 backdrop-blur">
       <p className="text-sm font-medium text-neutral-500">{today}</p>
       <div className="flex items-center gap-4">
+        {user && <StaffNotifications key={user.id} />}
         {user && (
           <div className="flex items-center gap-2.5 border-l border-neutral-200 pl-4">
             <Avatar name={user.fullName} color={user.avatarColor} size={32} />

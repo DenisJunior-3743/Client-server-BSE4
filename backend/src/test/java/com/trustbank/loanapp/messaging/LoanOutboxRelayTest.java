@@ -12,12 +12,13 @@ class LoanOutboxRelayTest {
         var store = mock(LoanMessageStore.class);
         var publisher = mock(RabbitLoanPublisher.class);
         UUID id = UUID.randomUUID();
-        when(store.claim(any())).thenReturn(List.of(id));
+        var message = new LoanMessageStore.ClaimedMessage(id, LoanMessageType.REPEAT_DELINQUENCY);
+        when(store.claim(any())).thenReturn(List.of(message));
         assertEquals(1, new LoanOutboxRelay(store, publisher, true).publishBatch());
         var order = inOrder(store, publisher);
         var token = ArgumentCaptor.forClass(UUID.class);
         order.verify(store).claim(token.capture());
-        order.verify(publisher).publish(id);
+        order.verify(publisher).publish(message);
         order.verify(store).complete(id, token.getValue());
         verify(store, never()).retryLater(any(), any());
     }
@@ -26,8 +27,10 @@ class LoanOutboxRelayTest {
         var store = mock(LoanMessageStore.class);
         var publisher = mock(RabbitLoanPublisher.class);
         UUID first = UUID.randomUUID(), second = UUID.randomUUID();
-        when(store.claim(any())).thenReturn(List.of(first, second));
-        doThrow(new IllegalStateException("unavailable")).when(publisher).publish(first);
+        var firstMessage = new LoanMessageStore.ClaimedMessage(first, LoanMessageType.LOAN_STATUS_CHANGED);
+        var secondMessage = new LoanMessageStore.ClaimedMessage(second, LoanMessageType.REPEAT_DELINQUENCY);
+        when(store.claim(any())).thenReturn(List.of(firstMessage, secondMessage));
+        doThrow(new IllegalStateException("unavailable")).when(publisher).publish(firstMessage);
         assertEquals(1, new LoanOutboxRelay(store, publisher, true).publishBatch());
         verify(store).retryLater(eq(first), any());
         verify(store, never()).complete(eq(first), any());
@@ -45,8 +48,9 @@ class LoanOutboxRelayTest {
         var store = mock(LoanMessageStore.class);
         var publisher = mock(RabbitLoanPublisher.class);
         UUID id = UUID.randomUUID();
-        when(store.claim(any())).thenReturn(List.of(id));
-        doThrow(new InterruptedException()).when(publisher).publish(id);
+        var message = new LoanMessageStore.ClaimedMessage(id, LoanMessageType.LOAN_STATUS_CHANGED);
+        when(store.claim(any())).thenReturn(List.of(message));
+        doThrow(new InterruptedException()).when(publisher).publish(message);
         try {
             assertEquals(0, new LoanOutboxRelay(store, publisher, true).publishBatch());
             assertTrue(Thread.currentThread().isInterrupted());
