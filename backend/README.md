@@ -92,6 +92,7 @@ A `403 FORBIDDEN` means the signed-in account lacks the required role.
 | `POST /auth/login` | public | Returns the JWT access token |
 | `GET/PUT /me`, `PUT /me/password` | any signed-in user | |
 | `GET/PUT /me/profile` | BORROWER | KYC profile |
+| `GET /applicants?page=0&size=50` | ADMIN | Registered borrowers and their saved profiles, with masked National IDs. The response includes `items`, `page`, `size`, `totalElements` and `totalPages`. Maximum page size is 100. |
 | `GET /me/notifications`, `POST /me/notifications/{id}/read` | any | |
 | `GET /products` | any | `POST /products` is ADMIN only |
 | `POST /applications` | BORROWER | **Idempotency-Key required** |

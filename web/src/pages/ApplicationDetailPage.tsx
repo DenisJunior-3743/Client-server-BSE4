@@ -38,7 +38,7 @@ import {
   infoRequestSchema,
   type InfoRequestFormValues,
 } from '@/lib/schemas'
-import type { LoanApplication, CreditCheck, Approval, Disbursement, StatusHistoryEntry } from '@/types'
+import type { LoanApplication, LoanDocument, CreditCheck, Approval, Disbursement, StatusHistoryEntry } from '@/types'
 import { PageSpinner } from '@/components/ui/PageSpinner'
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -48,6 +48,7 @@ import { SelectField } from '@/components/ui/SelectField'
 import { TextareaField } from '@/components/ui/TextareaField'
 import { TextField } from '@/components/ui/TextField'
 import { Avatar } from '@/components/ui/Avatar'
+import { DocumentPreview } from '@/components/ui/DocumentPreview'
 
 type DetailBundle = Awaited<ReturnType<typeof getApplicationDetail>>
 
@@ -57,6 +58,7 @@ export default function ApplicationDetailPage() {
   const [bundle, setBundle] = useState<DetailBundle | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'danger'; text: string } | null>(null)
+  const [preview, setPreview] = useState<LoanDocument | null>(null)
   const loanProducts = useProducts()
   const { user } = useAuth()
   // One key per disbursement. It survives re-renders and failed attempts, so a retry after a lost
@@ -119,6 +121,9 @@ export default function ApplicationDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      {preview && preview.loanApplicationId === id && (
+        <DocumentPreview key={preview.id} document={preview} onClose={() => setPreview(null)} />
+      )}
       <button
         type="button"
         onClick={() => navigate(-1)}
@@ -196,21 +201,27 @@ export default function ApplicationDetailPage() {
               <ul className="flex flex-col divide-y divide-neutral-100">
                 {documents.map((doc) => (
                   <li key={doc.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500">
+                    <div className="flex min-w-0 max-w-full items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500">
                         <FileText className="h-4 w-4" />
                       </div>
-                      <div>
+                      <div className="min-w-0 wrap-anywhere">
                         <p className="text-sm font-medium text-neutral-800">{doc.docType === 'COLLATERAL_PROOF' ? 'Collateral evidence photo' : doc.docType.replace(/_/g, ' ')}</p>
                         <p className="text-xs text-neutral-500">{doc.fileName}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {doc.downloadUrl && (
-                        <Button type="button" size="sm" variant="secondary"
-                          onClick={() => run(() => downloadDocument(doc.id, doc.fileName), 'Document downloaded.')}>
-                          Download
-                        </Button>
+                        <>
+                          <Button type="button" size="sm" variant="secondary"
+                            aria-label={`Preview ${doc.fileName}`} onClick={() => setPreview(doc)}>
+                            Preview
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost"
+                            onClick={() => run(() => downloadDocument(doc.id, doc.fileName), 'Document downloaded.')}>
+                            Download
+                          </Button>
+                        </>
                       )}
                       <Badge tone={doc.verificationStatus === 'VERIFIED' ? 'success' : doc.verificationStatus === 'REJECTED' ? 'danger' : 'warning'}>
                         {doc.verificationStatus}

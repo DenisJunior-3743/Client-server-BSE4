@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -88,6 +89,11 @@ public final class AuthDtos {
 
     public record ProfileDto(UUID id, UUID userId, String nationalId, LocalDate dateOfBirth,
             Map<String, String> employmentInfo, BigDecimal incomeMonthly, Map<String, String> address) {}
+
+    public record ApplicantDto(UUID id, String fullName, String email, String phone, boolean phoneVerified,
+            boolean active, Instant createdAt, ProfileDto profile) {}
+
+    public record ApplicantPageDto(List<ApplicantDto> items, int page, int size, long totalElements, int totalPages) {}
 
     public record StaffRequest(
             @NotBlank @Size(min = 2, max = 120) String fullName,

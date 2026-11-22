@@ -117,17 +117,23 @@ async function toApiError(response: Response): Promise<ApiError> {
   }
 }
 
-/** Downloads private documents using the same Bearer token as JSON API requests. */
-export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
+/** Reads a private document using the same Bearer token as JSON API requests. */
+export async function fetchDocumentContent(documentId: string, signal?: AbortSignal): Promise<Blob> {
   if (!API_URL) throw new ApiError(0, 'API_NOT_CONFIGURED', 'The banking service is unavailable. Please contact your administrator.')
   const token = getToken()
+  const timeout = AbortSignal.timeout(30_000)
   const response = await fetch(`${API_URL}/api/v1/documents/${encodeURIComponent(documentId)}/content`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
-    signal: AbortSignal.timeout(30_000),
+    cache: 'no-store',
+    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
   })
   if (response.status === 401) rejectSession(token)
   if (!response.ok) throw await toApiError(response)
-  const blobUrl = URL.createObjectURL(await response.blob())
+  return response.blob()
+}
+
+export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
+  const blobUrl = URL.createObjectURL(await fetchDocumentContent(documentId))
   const link = document.createElement('a')
   link.href = blobUrl
   link.download = fileName
