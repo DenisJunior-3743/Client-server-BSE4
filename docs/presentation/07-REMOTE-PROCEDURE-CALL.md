@@ -106,7 +106,7 @@ If the dashboard reaches an older backend and the RPC route returns HTTP 404 or 
 
 ## Demonstrate a request in Swagger
 
-Open your running backend’s `/swagger-ui.html`, authorize the `rpcBearer` scheme with a genuine JWT, and locate `POST /api/v1/rpc`. Substitute an application UUID accessible to your account.
+Open your running backend’s `/swagger-ui.html`, paste the login response’s `accessToken` under `bearerAuth`, and locate `POST /api/v1/rpc`. Substitute an application UUID accessible to your account.
 
 ```json
 {

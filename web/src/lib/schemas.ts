@@ -29,6 +29,10 @@ export const staffCreateSchema = staffSchema.extend({
 })
 export type StaffCreateFormValues = z.infer<typeof staffCreateSchema>
 
+export const staffEditSchema = staffCreateSchema.extend({
+  phone: z.union([phoneSchema, z.literal('')]),
+})
+
 export const staffCredentialsSchema = z.object({
   password: staffPasswordSchema,
   confirmPassword: z.string().min(1, 'Confirm the new password'),

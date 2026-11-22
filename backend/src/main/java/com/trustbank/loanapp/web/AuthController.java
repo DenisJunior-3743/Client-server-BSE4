@@ -8,6 +8,7 @@ import com.trustbank.loanapp.web.dto.AuthDtos.OtpResendRequest;
 import com.trustbank.loanapp.web.dto.AuthDtos.OtpVerifyRequest;
 import com.trustbank.loanapp.web.dto.AuthDtos.RegisterRequest;
 import com.trustbank.loanapp.web.dto.AuthDtos.RegisterResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/auth")
+@SecurityRequirements
 public class AuthController {
 
     private final AuthService auth;

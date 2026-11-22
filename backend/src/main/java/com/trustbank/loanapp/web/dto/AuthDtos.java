@@ -91,9 +91,13 @@ public final class AuthDtos {
     public record StaffRequest(
             @NotBlank @Size(min = 2, max = 120) String fullName,
             @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Pattern(regexp = PHONE_REGEX, message = "Enter a valid phone number") String phone,
+            @Pattern(regexp = PHONE_REGEX, message = "Enter a valid phone number") String phone,
             @NotNull Role role,
-            @NotBlank @Size(max = 80) String branch) {}
+            @NotBlank @Size(max = 80) String branch) {
+        public StaffRequest {
+            if (phone != null && phone.isBlank()) phone = null;
+        }
+    }
 
     public record StaffCreateRequest(
             @NotBlank @Size(min = 2, max = 120) String fullName,

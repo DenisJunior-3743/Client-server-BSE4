@@ -69,7 +69,9 @@ public class AdminController {
 
     @PutMapping("/staff/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Edit staff details and role; preserves the existing password")
+    @Operation(summary = "Edit staff details and role",
+            description = "The email is the sign-in username. The password stays the same. "
+                    + "Omit phone or leave it blank to keep the current number.")
     public UserDto updateStaff(@CurrentUser AuthUser user, @PathVariable UUID id,
             @Valid @RequestBody StaffRequest request) {
         return staff.updateStaff(user.id(), id, request);

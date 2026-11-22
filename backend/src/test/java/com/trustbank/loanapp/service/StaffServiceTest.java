@@ -81,6 +81,14 @@ class StaffServiceTest {
         verify(users, never()).existsByEmail(anyString());
     }
 
+    @Test void emailChangeKeepsTheStoredPhoneWhenNoNumberIsProvided() {
+        var updated = service.updateStaff(adminId, staffId,
+                new StaffRequest("New Name", "NEW@example.test", "", member.getRole(), "Main"));
+        assertEquals("new@example.test", updated.email());
+        assertEquals("0771234567", updated.phone());
+        assertEquals("existing-hash", member.getPasswordHash());
+    }
+
     @Test void adminCanEditOwnDetailsButCannotDemoteOrDeleteSelf() {
         service.updateStaff(adminId, adminId, request(Role.ADMIN));
         assertEquals("SELF_ROLE_CHANGE", assertThrows(ApiException.class,

@@ -60,6 +60,24 @@ If your private `backend/.env` is already configured, run `.\scripts\run-local.p
 For a real deployment run with `SPRING_PROFILES_ACTIVE=prod` (HTTPS required, no demo data, no
 OTP echo) and set `CORS_ALLOWED_ORIGINS` to the dashboard's URL.
 
+## Signing in through Swagger or Postman
+
+1. Send `POST /api/v1/auth/login` with an `email` and `password` JSON body. Use the staff member’s
+   current email and copy the response’s `accessToken`.
+2. In Swagger, open **Authorize** and paste the token under `bearerAuth`. In Postman, use
+   **Authorization → Bearer Token** and paste the same token. Both clients add the `Bearer` prefix.
+3. Send `GET /api/v1/me` against the same backend URL to confirm the account and role.
+   `GET /api/v1/staff` then returns the staff directory for a signed-in staff account.
+
+An email change takes effect as soon as the staff edit succeeds. It keeps the existing password.
+`PUT /api/v1/staff/{id}/credentials` takes only `{"password":"<new password>"}`. A successful reset
+returns `204 No Content` and invalidates the affected account’s old tokens. Sign in with the
+updated email and new password to get a fresh token.
+
+If login returns `401 INVALID_CREDENTIALS`, check the account email and password. If a protected
+request returns `401 UNAUTHENTICATED`, check that it sends the fresh token to the same backend host.
+A `403 FORBIDDEN` means the signed-in account lacks the required role.
+
 ## Endpoints (all under `/api/v1`)
 
 | Method and path | Who | Notes |

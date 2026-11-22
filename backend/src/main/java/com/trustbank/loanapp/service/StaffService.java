@@ -124,7 +124,7 @@ public class StaffService {
         }
         user.setFullName(request.fullName().trim());
         user.setEmail(email);
-        user.setPhone(request.phone());
+        if (request.phone() != null) user.setPhone(request.phone());
         user.setRole(request.role());
         user.setBranch(request.branch().trim());
         // Password and past workflow/audit references remain unchanged.

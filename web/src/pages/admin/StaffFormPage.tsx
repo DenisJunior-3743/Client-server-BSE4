@@ -10,7 +10,7 @@ import { isStaffRole } from '@/lib/access'
 import { LoadError } from '@/components/ui/LoadError'
 import { PageSpinner } from '@/components/ui/PageSpinner'
 import { ApiError } from '@/api/client'
-import { staffCreateSchema, type StaffCreateFormValues } from '@/lib/schemas'
+import { staffCreateSchema, staffEditSchema, type StaffCreateFormValues } from '@/lib/schemas'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { TextField } from '@/components/ui/TextField'
@@ -55,9 +55,12 @@ function StaffForm({ staff }: { staff?: User }) {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<StaffCreateFormValues>({
-    resolver: zodResolver(staffCreateSchema),
+    resolver: zodResolver(staff ? staffEditSchema : staffCreateSchema),
     defaultValues: {
-      fullName: staff?.fullName ?? '', email: staff?.email ?? '', phone: staff?.phone ?? '', branch: staff?.branch ?? '',
+      fullName: staff?.fullName ?? '',
+      email: staff?.email ?? '',
+      phone: staff?.phone?.replace(/^\+256(?=7\d{8}$)/, '0') ?? '',
+      branch: staff?.branch ?? '',
       role: staff && isStaffRole(staff.role) ? staff.role : undefined,
       password: '',
     },
@@ -123,8 +126,10 @@ function StaffForm({ staff }: { staff?: User }) {
       <Card>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
           <TextField label="Full name" required placeholder="e.g. Grace Namutebi" error={errors.fullName?.message} {...register('fullName')} />
-          <TextField label="Email address" type="email" required placeholder="name@bankloan.ug" error={errors.email?.message} {...register('email')} />
-          <PhoneField label="Phone number" required error={errors.phone?.message} {...register('phone')} />
+          <TextField label="Email address" type="email" required placeholder="name@bankloan.ug" hint="Used to sign in."
+            error={errors.email?.message} {...register('email')} />
+          <PhoneField label="Phone number" required={!staff} hint={staff?.phone ? 'Leave blank to keep the current number.' : undefined}
+            error={errors.phone?.message} {...register('phone')} />
           <SelectField label="Role" required placeholder="Select a role" options={staff?.id === user?.id ? ROLE_OPTIONS.filter((option) => option.value === 'ADMIN') : ROLE_OPTIONS} error={errors.role?.message} {...register('role')} />
           <TextField label="Branch" required placeholder="e.g. Mbarara Branch" error={errors.branch?.message} {...register('branch')} />
           {!staff && <TextField label="Initial password (optional)" type="password" autoComplete="new-password"

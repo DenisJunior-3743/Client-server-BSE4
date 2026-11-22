@@ -12,12 +12,9 @@ import com.trustbank.loanapp.security.AuthUser;
 import com.trustbank.loanapp.security.CurrentUser;
 import com.trustbank.loanapp.service.LoanApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import java.io.IOException;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -34,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** JSON-RPC transport adapter. The application service owns authorization and loan queries. */
 @RestController
-@SecurityScheme(name = "rpcBearer", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class RpcController {
     private static final Logger log = LoggerFactory.getLogger(RpcController.class);
     private static final String VERSION = "2.0";
@@ -56,7 +52,6 @@ public class RpcController {
     @Operation(summary = "Call a loan procedure using JSON-RPC 2.0",
             description = "Methods: loan.getApplication and loan.getRepaymentSchedule. Both take an applicationId UUID. "
                     + "Batches are limited to ten calls. Include an id when you want a response.",
-            security = @SecurityRequirement(name = "rpcBearer"),
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(type = "object"),

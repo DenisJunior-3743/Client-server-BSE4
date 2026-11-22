@@ -88,6 +88,16 @@ class AdminControllerTest {
         verifyNoInteractions(staff);
     }
 
+    @Test void blankPhoneIsAllowedWhenEditingButNotWhenCreatingStaff() throws Exception {
+        String withoutPhone = payload.replace("0771234567", "");
+        mvc.perform(put("/api/v1/staff/" + staffId).contentType("application/json").content(withoutPhone))
+                .andExpect(status().isOk());
+        verify(staff).updateStaff(eq(adminId), eq(staffId), argThat(request -> request.phone() == null));
+        mvc.perform(post("/api/v1/staff").contentType("application/json").content(withoutPhone))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors.phone").exists());
+        verify(staff, never()).createStaff(any(), any(), any());
+    }
+
     @Test void adminCanSetPasswordWithoutReceivingOrEditingUsername() throws Exception {
         mvc.perform(put("/api/v1/staff/" + staffId + "/credentials").contentType("application/json")
                 .content("{\"password\":\"NewPassword123\"}"))
