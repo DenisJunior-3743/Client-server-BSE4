@@ -17,7 +17,7 @@ public record AppProperties(
         Async async,
         boolean seedDemoData) {
 
-    public record Jwt(String secret, Duration accessTokenTtl, String issuer) {}
+    public record Jwt(String secret, Duration accessTokenTtl, Duration rememberedAccessTokenTtl, String issuer) {}
 
     public record Cors(List<String> allowedOrigins) {}
 

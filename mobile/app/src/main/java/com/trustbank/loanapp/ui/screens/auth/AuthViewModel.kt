@@ -19,10 +19,10 @@ class AuthViewModel(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState
 
-    fun login(email: String, password: String, onSuccess: () -> Unit) {
+    fun login(email: String, password: String, rememberMe: Boolean, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)
-            authRepository.login(email, password)
+            authRepository.login(email, password, rememberMe)
                 .onSuccess { user ->
                     AppContainer.session.signIn(user)
                     _uiState.value = AuthUiState()

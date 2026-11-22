@@ -1,10 +1,14 @@
 package com.trustbank.loanapp.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.trustbank.loanapp.ui.screens.applications.ApplicationDetailScreen
@@ -18,9 +22,23 @@ import com.trustbank.loanapp.ui.screens.onboarding.OnboardingScreen
 import com.trustbank.loanapp.ui.screens.products.ProductDetailScreen
 import com.trustbank.loanapp.ui.screens.settings.SettingsScreen
 import com.trustbank.loanapp.ui.screens.splash.SplashScreen
+import com.trustbank.loanapp.data.AppContainer
+
+private val signedOutRoutes = setOf(Routes.SPLASH, Routes.ONBOARDING, Routes.LOGIN, Routes.REGISTER, Routes.VERIFY_PHONE)
 
 @Composable
 fun NavGraph(navController: NavHostController = rememberNavController()) {
+    val user by AppContainer.session.currentUser.collectAsState()
+    val entry by navController.currentBackStackEntryAsState()
+    val route = entry?.destination?.route
+    LaunchedEffect(user?.id, route) {
+        if (user == null && route != null && route !in signedOutRoutes) {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(navController.graph.id)
+                launchSingleTop = true
+            }
+        }
+    }
     NavHost(navController = navController, startDestination = Routes.SPLASH) {
         composable(Routes.SPLASH) {
             SplashScreen(

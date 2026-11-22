@@ -47,13 +47,14 @@ private suspend fun <T> readOr(fallback: T, block: suspend LoanApi.() -> T): T =
 
 class RemoteAuthRepository : AuthRepository {
 
-    override suspend fun login(email: String, password: String): Result<User> = runApi {
-        val reply = ApiClient.call { login(LoginRequestDto(email.trim(), password)) }
+    override suspend fun login(email: String, password: String, rememberMe: Boolean): Result<User> = runApi {
+        val reply = ApiClient.call { login(LoginRequestDto(email.trim(), password, rememberMe)) }
         if (reply.user.role != "BORROWER") {
             throw ApiException(403, "STAFF_ACCOUNT", "This app is for borrowers. Staff use the web dashboard.")
         }
-        TokenStore.accessToken = reply.accessToken
-        reply.user.toModel()
+        val user = reply.user.toModel()
+        withContext(Dispatchers.IO) { TokenStore.save(reply, rememberMe) }
+        user
     }
 
     override suspend fun updateAccount(fullName: String, email: String, phone: String): Result<User> = runApi {

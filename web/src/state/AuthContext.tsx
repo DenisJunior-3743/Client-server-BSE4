@@ -1,45 +1,37 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { User } from '@/types'
 import { login as apiLogin } from '@/api/auth'
-import { isStaffRole } from '@/lib/access'
-import { clearSession, getToken } from '@/api/client'
+import { clearSession, currentSession, storeProfile } from '@/api/session'
 
 interface AuthContextValue {
   user: User | null
   isLoading: boolean
   error: string | null
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, rememberMe: boolean) => Promise<void>
   logout: () => void
   updateProfile: (updates: Pick<User, 'fullName' | 'email' | 'phone'>) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
-const STORAGE_KEY = 'bankloan.currentUser'
-
-function readStoredUser(): User | null {
-  try {
-    if (!getToken()) { clearSession(); return null }
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const stored = raw ? (JSON.parse(raw) as User) : null
-    if (!stored || !isStaffRole(stored.role)) { clearSession(); return null }
-    return stored
-  } catch {
-    return null
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(readStoredUser)
+  const [user, setUser] = useState<User | null>(() => currentSession()?.user ?? null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function login(email: string, password: string) {
+  useEffect(() => {
+    function syncRememberedSession(event: StorageEvent) {
+      if (event.storageArea === localStorage) setUser(currentSession()?.user ?? null)
+    }
+    window.addEventListener('storage', syncRememberedSession)
+    return () => window.removeEventListener('storage', syncRememberedSession)
+  }, [])
+
+  async function login(email: string, password: string, rememberMe: boolean) {
     setIsLoading(true)
     setError(null)
     try {
-      const loggedInUser = await apiLogin(email, password)
+      const loggedInUser = await apiLogin(email, password, rememberMe)
       setUser(loggedInUser)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(loggedInUser))
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to log in'
       setError(message)
@@ -59,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev
       const next = { ...prev, ...updates }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      storeProfile(next)
       return next
     })
   }

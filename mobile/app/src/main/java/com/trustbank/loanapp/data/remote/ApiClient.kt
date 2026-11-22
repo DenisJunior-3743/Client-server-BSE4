@@ -2,6 +2,7 @@ package com.trustbank.loanapp.data.remote
 
 import com.google.gson.Gson
 import com.trustbank.loanapp.BuildConfig
+import com.trustbank.loanapp.data.AppContainer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import okhttp3.Interceptor
@@ -17,20 +18,6 @@ import java.util.concurrent.TimeUnit
 class ApiException(val status: Int, val code: String, message: String) : Exception(message) {
     /** True when the request may be sent again as-is (nothing reached us, or the server was busy). */
     val isTransient: Boolean get() = code == "NETWORK" || status == 503
-}
-
-/**
- * Holds the JWT for this app run. The server is stateless: it keeps no session for us, so
- * every request must carry this token, and logging out is simply forgetting it.
- * In memory only, like the rest of the app's state.
- */
-object TokenStore {
-    @Volatile
-    var accessToken: String? = null
-
-    fun clear() {
-        accessToken = null
-    }
 }
 
 object IdempotencyKeys {
@@ -113,7 +100,10 @@ object ApiClient {
         } catch (_: Exception) {
             null
         }
-        if (e.code() == 401) TokenStore.clear()
+        if (e.code() == 401 && parsed?.code != "INVALID_CREDENTIALS") {
+            val authorization = e.response()?.raw()?.request?.header("Authorization")
+            authorization?.removePrefix("Bearer ")?.let(AppContainer.session::rejectToken)
+        }
         val message = parsed?.fieldErrors?.values?.firstOrNull()
             ?: parsed?.message
             ?: "Request failed (${e.code()})"

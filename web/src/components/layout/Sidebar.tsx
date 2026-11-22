@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, LayoutDashboard, LogOut, Landmark as BrandIcon } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LogOut, Landmark as BrandIcon, X } from 'lucide-react'
 import { canAccessWorkspace, homeForRole } from '@/lib/access'
 import { NAV_SECTIONS } from '@/lib/nav'
 import { STAFF_ROLE_META } from '@/lib/status'
@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn'
 import { useAuth } from '@/state/AuthContext'
 import { Avatar } from '@/components/ui/Avatar'
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const location = useLocation()
   const { user, logout } = useAuth()
   const sections = NAV_SECTIONS.filter((section) => canAccessWorkspace(user?.role, section.role))
@@ -28,7 +28,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-[272px] shrink-0 flex-col bg-neutral-900 text-neutral-300">
+    <aside className="flex h-dvh w-[272px] max-w-full shrink-0 flex-col bg-neutral-900 text-neutral-300">
       <div className="flex items-center gap-2.5 px-5 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">
           <BrandIcon className="h-5 w-5" />
@@ -37,11 +37,18 @@ export function Sidebar() {
           <p className="font-display text-sm font-bold text-white">TrustBank</p>
           <p className="text-xs text-neutral-400">Loan Dashboard</p>
         </div>
+        {onClose && (
+          <button type="button" aria-label="Close menu" onClick={onClose}
+            className="ml-auto grid size-11 shrink-0 place-items-center rounded-lg hover:bg-neutral-800 focus-visible:outline-2">
+            <X size={20} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         <NavLink
           to={homeForRole(user?.role)}
+          onClick={onClose}
           end
           className={({ isActive }) =>
             cn(
@@ -67,6 +74,7 @@ export function Sidebar() {
               <div key={section.label}>
                 <button
                   type="button"
+                  aria-expanded={isExpanded}
                   onClick={() => toggle(section.label)}
                   className={cn(
                     'flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
@@ -83,6 +91,7 @@ export function Sidebar() {
                       <NavLink
                         key={child.to}
                         to={child.to}
+                        onClick={onClose}
                         className={({ isActive }) =>
                           cn(
                             'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
@@ -107,6 +116,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-800 p-3">
         <NavLink
           to="/account/profile"
+          onClick={onClose}
           className={({ isActive }) =>
             cn('flex items-center gap-3 rounded-lg px-2 py-2 transition-colors', isActive ? 'bg-neutral-800' : 'hover:bg-neutral-800')
           }
@@ -119,7 +129,7 @@ export function Sidebar() {
         </NavLink>
         <button
           type="button"
-          onClick={logout}
+          onClick={() => { onClose?.(); logout() }}
           className="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
         >
           <LogOut className="h-4 w-4" />

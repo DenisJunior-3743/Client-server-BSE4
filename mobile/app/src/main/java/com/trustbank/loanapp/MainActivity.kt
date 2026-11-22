@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.trustbank.loanapp.data.AppContainer
 import com.trustbank.loanapp.ui.components.KeyboardAwareContent
 import com.trustbank.loanapp.navigation.NavGraph
 import com.trustbank.loanapp.ui.theme.TrustBankLoansTheme
@@ -14,6 +15,7 @@ import com.trustbank.loanapp.ui.theme.TrustBankLoansTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppContainer.session.restore(applicationContext)
         enableEdgeToEdge()
         setContent {
             TrustBankLoansTheme {

@@ -3,7 +3,7 @@ package com.trustbank.loanapp.data.repository
 import com.trustbank.loanapp.data.model.User
 
 interface AuthRepository {
-    suspend fun login(email: String, password: String): Result<User>
+    suspend fun login(email: String, password: String, rememberMe: Boolean = false): Result<User>
     suspend fun updateAccount(fullName: String, email: String, phone: String): Result<User>
     suspend fun register(fullName: String, email: String, phone: String, password: String): Result<User>
 

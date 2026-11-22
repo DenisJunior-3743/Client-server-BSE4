@@ -8,6 +8,7 @@ import com.trustbank.loanapp.repo.*;
 import com.trustbank.loanapp.service.AccountService;
 import com.trustbank.loanapp.service.StaffService;
 import com.trustbank.loanapp.web.dto.AuthDtos.ChangePasswordRequest;
+import com.trustbank.loanapp.web.dto.AuthDtos.LoginRequest;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +35,7 @@ class CredentialLifecycleTest {
     final UserRepository users = mock(UserRepository.class);
     final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(4);
     final JwtService jwt = new JwtService(new AppProperties(
-            new AppProperties.Jwt(SECRET, Duration.ofHours(1), "test"),
+            new AppProperties.Jwt(SECRET, Duration.ofHours(1), Duration.ofDays(7), "test"),
             null, null, null, null, null, null, null, false), Clock.systemUTC());
     final JwtAuthFilter filter = new JwtAuthFilter(jwt, users);
     final UUID adminId = UUID.randomUUID();
@@ -61,14 +62,14 @@ class CredentialLifecycleTest {
     }
 
     @Test void resetInvalidatesOldTokensAndNewPasswordProducesAcceptedTokens() throws Exception {
-        String before = jwt.issue(member);
+        String before = jwt.issue(member, true);
         assertNotNull(authenticate(before));
         staff.setStaffCredentials(adminId, member.getId(), "Replacement123");
         assertTrue(encoder.matches("Replacement123", member.getPasswordHash()));
         assertFalse(encoder.matches("Original123", member.getPasswordHash()));
         assertNotEquals("Replacement123", member.getPasswordHash());
         assertNull(authenticate(before));
-        String after = jwt.issue(member);
+        String after = jwt.issue(member, false);
         assertEquals(1, jwt.verify(after).orElseThrow().credentialVersion());
         assertNotNull(authenticate(after));
     }
@@ -85,11 +86,24 @@ class CredentialLifecycleTest {
     }
 
     @Test void existingSelfServicePasswordChangeAlsoRevokesEarlierTokens() throws Exception {
-        String before = jwt.issue(member);
+        String before = jwt.issue(member, false);
         var accounts = new AccountService(users, mock(ApplicantProfileRepository.class),
                 mock(NotificationRepository.class), encoder, Clock.systemUTC());
         accounts.changePassword(member.getId(), new ChangePasswordRequest("Original123", "Replacement123"));
         assertNull(authenticate(before));
-        assertNotNull(authenticate(jwt.issue(member)));
+        assertNotNull(authenticate(jwt.issue(member, false)));
+    }
+
+    @Test void rememberMeExtendsTheSignedExpiryOnlyWhenRequested() throws Exception {
+        var oldClient = new ObjectMapper().readValue(
+                "{\"email\":\"staff@bank.com\",\"password\":\"Original123\"}", LoginRequest.class);
+        assertFalse(oldClient.rememberMe());
+        var verifier = Jwts.parser().verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8))).build();
+        var standard = verifier.parseSignedClaims(jwt.issue(member, oldClient.rememberMe())).getPayload();
+        var remembered = verifier.parseSignedClaims(jwt.issue(member, true)).getPayload();
+        assertEquals(Duration.ofHours(1), Duration.between(standard.getIssuedAt().toInstant(),
+                standard.getExpiration().toInstant()));
+        assertEquals(Duration.ofDays(7), Duration.between(remembered.getIssuedAt().toInstant(),
+                remembered.getExpiration().toInstant()));
     }
 }

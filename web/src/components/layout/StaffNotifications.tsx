@@ -44,7 +44,7 @@ export function StaffNotifications() {
   }
 
   return (
-    <div className="relative" onKeyDown={(event) => {
+    <div className="sm:relative" onKeyDown={(event) => {
       if (event.key === 'Escape') {
         setOpen(false)
         event.currentTarget.querySelector('button')?.focus()
@@ -52,7 +52,7 @@ export function StaffNotifications() {
     }}>
       <button
         type="button"
-        className="rounded-lg p-2 text-neutral-600 hover:bg-neutral-100"
+        className="grid size-11 place-items-center rounded-lg text-neutral-600 hover:bg-neutral-100"
         aria-label="Notifications"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
@@ -70,7 +70,7 @@ export function StaffNotifications() {
         <section
           id={panelId}
           aria-label="Staff notifications"
-          className="absolute right-0 top-full mt-2 max-h-96 w-80 max-w-[calc(100vw-2rem)] overflow-auto rounded-xl border border-neutral-200 bg-white p-4 shadow-lg"
+          className="absolute inset-x-3 top-full mt-2 max-h-[min(24rem,calc(100dvh-5rem))] overflow-auto rounded-xl border border-neutral-200 bg-white p-4 shadow-lg sm:inset-x-auto sm:right-0 sm:w-80"
         >
           <h2 className="mb-2 text-sm font-semibold text-neutral-900">Notifications</h2>
           {error && <p role="alert" className="text-sm text-danger-600">{error}</p>}

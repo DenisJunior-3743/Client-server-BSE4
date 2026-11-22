@@ -7,7 +7,7 @@ package com.trustbank.loanapp.data.remote
 // never need to agree on byte order or object layout — only on these field names.
 // Dates travel as ISO-8601 strings and are converted in Mappers.kt.
 
-data class LoginRequestDto(val email: String, val password: String)
+data class LoginRequestDto(val email: String, val password: String, val rememberMe: Boolean)
 
 data class RegisterRequestDto(val fullName: String, val email: String, val phone: String, val password: String)
 

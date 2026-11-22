@@ -333,9 +333,9 @@ export default function ApplicationDetailPage() {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <dt className="text-xs font-medium uppercase tracking-wide text-neutral-400">{label}</dt>
-      <dd className="mt-0.5 font-medium text-neutral-800">{value}</dd>
+      <dd className="mt-0.5 font-medium text-neutral-800 wrap-anywhere">{value}</dd>
     </div>
   )
 }

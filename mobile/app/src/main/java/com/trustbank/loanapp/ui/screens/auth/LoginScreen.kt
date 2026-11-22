@@ -15,18 +15,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -48,6 +54,7 @@ fun LoginScreen(
     SetStatusBarAppearance(darkIcons = false)
 
     val uiState by viewModel.uiState.collectAsState()
+    var rememberMe by rememberSaveable { mutableStateOf(false) }
 
     val email = rememberFieldState {
         when {
@@ -62,7 +69,7 @@ fun LoginScreen(
         val emailValid = email.validateForSubmit()
         val passwordValid = password.validateForSubmit()
         if (emailValid && passwordValid) {
-            viewModel.login(email.value, password.value, onLoginSuccess)
+            viewModel.login(email.value, password.value, rememberMe, onLoginSuccess)
         }
     }
 
@@ -123,6 +130,22 @@ fun LoginScreen(
                 error = password.error,
                 showStrengthMeter = true,
             )
+
+            Spacer(Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = rememberMe, enabled = !uiState.isLoading, role = Role.Checkbox,
+                        onValueChange = { rememberMe = it },
+                    )
+                    .padding(horizontal = 4.dp, vertical = 12.dp),
+            ) {
+                Checkbox(checked = rememberMe, onCheckedChange = null, enabled = !uiState.isLoading)
+                Text("Remember me on this device", style = MaterialTheme.typography.bodyMedium)
+            }
 
             if (uiState.error != null) {
                 Spacer(Modifier.height(12.dp))

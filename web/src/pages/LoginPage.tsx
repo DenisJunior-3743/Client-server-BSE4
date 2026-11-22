@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Landmark } from 'lucide-react'
 import { useAuth } from '@/state/AuthContext'
 import { loginSchema, type LoginFormValues } from '@/lib/schemas'
@@ -9,9 +9,9 @@ import { TextField } from '@/components/ui/TextField'
 import { Button } from '@/components/ui/Button'
 
 export default function LoginPage() {
-  const { login, isLoading } = useAuth()
-  const navigate = useNavigate()
+  const { login, isLoading, user } = useAuth()
   const location = useLocation()
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/'
   const [formError, setFormError] = useState<string | null>(null)
 
   const {
@@ -20,22 +20,22 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', rememberMe: false },
   })
 
   async function onSubmit(values: LoginFormValues) {
     setFormError(null)
     try {
-      await login(values.email, values.password)
-      const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/'
-      navigate(from, { replace: true })
+      await login(values.email, values.password, values.rememberMe)
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Unable to log in')
     }
   }
 
+  if (user) return <Navigate to={from} replace />
+
   return (
-    <div className="flex min-h-screen bg-neutral-50">
+    <div className="flex min-h-dvh bg-neutral-50">
       <div className="relative hidden w-[46%] flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-neutral-900 p-12 text-white lg:flex">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary-500/30 blur-3xl" />
         <div className="absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-primary-400/20 blur-3xl" />
@@ -53,7 +53,7 @@ export default function LoginPage() {
         <p className="absolute bottom-12 text-xs text-primary-200">Client Server Programming for Applications · MUST</p>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex min-w-0 flex-1 items-center justify-center px-4 py-8 sm:px-6">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center gap-2 lg:hidden">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-600 text-white">
@@ -85,7 +85,12 @@ export default function LoginPage() {
               {...register('password')}
             />
 
-            {formError && <p className="rounded-lg bg-danger-50 px-3 py-2 text-sm font-medium text-danger-700">{formError}</p>}
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-neutral-700">
+              <input type="checkbox" className="size-4 shrink-0 accent-primary-600" {...register('rememberMe')} />
+              <span>Remember me on this device</span>
+            </label>
+
+            {formError && <p role="alert" className="rounded-lg bg-danger-50 px-3 py-2 text-sm font-medium text-danger-700">{formError}</p>}
 
             <Button type="submit" isLoading={isLoading} className="mt-2 w-full">
               Sign in

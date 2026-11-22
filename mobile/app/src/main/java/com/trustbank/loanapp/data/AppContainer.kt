@@ -1,5 +1,6 @@
 package com.trustbank.loanapp.data
 
+import android.content.Context
 import com.trustbank.loanapp.data.model.LoanProduct
 import com.trustbank.loanapp.data.model.User
 import com.trustbank.loanapp.data.remote.RemoteApplicationRepository
@@ -22,6 +23,10 @@ class SessionManager {
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser
 
+    fun restore(context: Context) {
+        TokenStore.restore(context)?.let(::signIn)
+    }
+
     fun signIn(user: User) {
         _currentUser.value = user
     }
@@ -33,12 +38,17 @@ class SessionManager {
     }
 
     fun updateUser(user: User) {
+        if (_currentUser.value?.id != user.id) return
         _currentUser.value = user
+        TokenStore.updateUser(user)
+    }
+
+    fun rejectToken(token: String) {
+        if (TokenStore.clearIfMatches(token)) _currentUser.value = null
     }
 }
 
-/** Global "hide sensitive amounts" toggle (loan amounts, income) — an in-memory-only
- * preference, consistent with the rest of the app not persisting state across launches. */
+/** In-memory toggle for hiding sensitive amounts such as loan amounts and income. */
 class VisibilitySettings {
     private val _amountsVisible = MutableStateFlow(true)
     val amountsVisible: StateFlow<Boolean> = _amountsVisible

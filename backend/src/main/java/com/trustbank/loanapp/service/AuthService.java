@@ -108,7 +108,8 @@ public class AuthService {
                     "Verify your phone number with the code we sent before signing in");
         }
         events.publishEvent(new AuditEvent("USER", user.getId(), "LOGIN", user.getId(), Map.of()));
-        return new LoginResponse(jwt.issue(user), "Bearer", jwt.ttlSeconds(), DtoMapper.user(user));
+        return new LoginResponse(jwt.issue(user, request.rememberMe()), "Bearer",
+                jwt.ttlSeconds(request.rememberMe()), DtoMapper.user(user));
     }
 
     static String normalise(String email) {

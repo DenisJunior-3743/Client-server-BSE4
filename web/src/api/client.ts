@@ -1,9 +1,9 @@
+import { clearSession, getToken } from './session'
+
 // All application data comes from the Spring Boot API.
 // Set VITE_API_URL in the web host environment before building.
 export const API_URL: string = ((import.meta.env.VITE_API_URL as string | undefined) ?? '').trim().replace(/\/+$/, '')
 
-const TOKEN_KEY = 'bankloan.token'
-const USER_KEY = 'bankloan.currentUser'
 const REQUEST_TIMEOUT_MS = 15_000
 
 // Brief backoff between retries of safe API requests.
@@ -33,17 +33,11 @@ export function isVersionConflict(err: unknown): err is ApiError {
   return err instanceof ApiError && err.code === 'VERSION_CONFLICT'
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
-}
-
-export function clearSession(): void {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
+function rejectSession(token: string | null) {
+  const currentToken = getToken()
+  if (currentToken && currentToken !== token) return
+  clearSession()
+  window.location.assign('/login')
 }
 
 /** One key per user action. Reuse the SAME key when retrying that action, never across actions. */
@@ -91,10 +85,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
         return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
       }
       const error = await toApiError(response)
-      if (response.status === 401 && auth) {
-        clearSession()
-        window.location.assign('/login')
-      }
+      if (response.status === 401 && auth) rejectSession(token)
       if (response.status !== 503) throw error
       lastError = error // server busy: retry if this request is retryable
     } catch (err) {
@@ -134,6 +125,7 @@ export async function downloadDocument(documentId: string, fileName: string): Pr
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     signal: AbortSignal.timeout(30_000),
   })
+  if (response.status === 401) rejectSession(token)
   if (!response.ok) throw await toApiError(response)
   const blobUrl = URL.createObjectURL(await response.blob())
   const link = document.createElement('a')

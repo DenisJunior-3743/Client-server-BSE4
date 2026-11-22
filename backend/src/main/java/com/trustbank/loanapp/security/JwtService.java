@@ -34,7 +34,7 @@ public class JwtService {
         this.clock = clock;
     }
 
-    public String issue(User user) {
+    public String issue(User user, boolean rememberMe) {
         Instant now = clock.instant();
         return Jwts.builder()
                 .issuer(props.issuer())
@@ -43,13 +43,13 @@ public class JwtService {
                 .claim("role", user.getRole().name())
                 .claim("credentialVersion", user.getCredentialVersion())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(props.accessTokenTtl())))
+                .expiration(Date.from(now.plusSeconds(ttlSeconds(rememberMe))))
                 .signWith(key)
                 .compact();
     }
 
-    public long ttlSeconds() {
-        return props.accessTokenTtl().toSeconds();
+    public long ttlSeconds(boolean rememberMe) {
+        return (rememberMe ? props.rememberedAccessTokenTtl() : props.accessTokenTtl()).toSeconds();
     }
 
     /** Empty when the token is missing a claim, expired, tampered with or signed by another key. */

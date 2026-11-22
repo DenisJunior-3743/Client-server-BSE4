@@ -74,6 +74,11 @@ An email change takes effect as soon as the staff edit succeeds. It keeps the ex
 returns `204 No Content` and invalidates the affected account’s old tokens. Sign in with the
 updated email and new password to get a fresh token.
 
+Login accepts an optional `rememberMe` boolean. The default access token lasts one hour.
+`rememberMe: true` issues a token with a seven-day expiry. The web dashboard keeps remembered
+sessions across browser restarts and other sessions in the current tab. Android stores remembered
+sessions encrypted on the device and keeps other sessions in memory.
+
 If login returns `401 INVALID_CREDENTIALS`, check the account email and password. If a protected
 request returns `401 UNAUTHENTICATED`, check that it sends the fresh token to the same backend host.
 A `403 FORBIDDEN` means the signed-in account lacks the required role.

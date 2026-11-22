@@ -57,11 +57,11 @@ export default function ProductFormPage() {
             error={errors.interestRateAnnual?.message}
             {...register('interestRateAnnual')}
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <TextField label="Minimum amount (UGX)" type="number" required placeholder="500000" error={errors.minAmount?.message} {...register('minAmount')} />
             <TextField label="Maximum amount (UGX)" type="number" required placeholder="15000000" error={errors.maxAmount?.message} {...register('maxAmount')} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <TextField label="Minimum term (months)" type="number" required placeholder="3" error={errors.minTermMonths?.message} {...register('minTermMonths')} />
             <TextField label="Maximum term (months)" type="number" required placeholder="36" error={errors.maxTermMonths?.message} {...register('maxTermMonths')} />
           </div>
